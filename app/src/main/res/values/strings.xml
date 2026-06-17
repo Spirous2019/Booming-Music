@@ -865,6 +865,8 @@
     <string name="album_min_songs_summary">How many songs (at least) must have an album to be shown in your library.</string>
     <string name="min_song_duration_title">Minimum song duration</string>
     <string name="min_song_duration_summary">How many seconds (at least) must last a song to be shown in your library.</string>
+    <string name="artist_separators_title">Artist name separators</string>
+    <string name="artist_separators_summary">Split compound artist names into individual artists using the selected separators.</string>
 
     <!-- Network preferences -->
     <string name="network_features_title">Enable network features</string>

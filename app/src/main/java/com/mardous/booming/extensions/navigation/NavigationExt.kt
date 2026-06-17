@@ -88,7 +88,7 @@ fun albumDetailArgs(albumId: Long) =
 
 fun artistDetailArgs(artist: Artist) =
     if (artist.isAlbumArtist) artistDetailArgs(-1, artist.name)
-    else artistDetailArgs(artist.id, null)
+    else artistDetailArgs(artist.id, artist.nameOverride)
 
 fun artistDetailArgs(album: Album) =
     if (Preferences.onlyAlbumArtists && !album.albumArtistName.isNullOrEmpty())

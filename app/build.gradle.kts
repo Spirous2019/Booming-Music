@@ -279,4 +279,6 @@ dependencies {
     implementation(libs.versioncompare)
     implementation(libs.commons.text)
     implementation(libs.juniversalchardet)
+
+    testImplementation("junit:junit:4.13.2")
 }

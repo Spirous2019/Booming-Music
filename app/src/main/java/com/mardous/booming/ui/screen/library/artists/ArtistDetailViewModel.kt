@@ -27,10 +27,10 @@ class ArtistDetailViewModel(
     fun getArtistDetail(): LiveData<Artist> = _artistDetail
 
     fun loadArtistDetail() = viewModelScope.launch(Dispatchers.IO) {
-        if (!artistName.isNullOrEmpty()) {
+        if (artistId == -1L && !artistName.isNullOrEmpty()) {
             _artistDetail.postValue(repository.albumArtistByName(artistName))
         } else if (artistId != -1L) {
-            _artistDetail.postValue(repository.artistById(artistId))
+            _artistDetail.postValue(repository.artistById(artistId, artistName))
         } else {
             _artistDetail.postValue(Artist.empty)
         }

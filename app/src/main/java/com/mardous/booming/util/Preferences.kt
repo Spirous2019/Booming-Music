@@ -411,6 +411,16 @@ object Preferences : KoinComponent {
     val minimumSongCountForAlbum: Int
         get() = preferences.getInt(ALBUM_MINIMUM_SONGS, 1)
 
+    val enabledArtistSeparators: Set<String>
+        get() {
+            val defaults = setOf(
+                ARTIST_SEPARATOR_FEAT_DOT,
+                ARTIST_SEPARATOR_FT_DOT,
+                ARTIST_SEPARATOR_SEMICOLON
+            )
+            return preferences.getStringSet(ARTIST_SEPARATORS, defaults) ?: defaults
+        }
+
     val minimumSongDuration: Int
         get() = preferences.getInt(MINIMUM_SONG_DURATION, 30)
 
@@ -645,3 +655,12 @@ const val LOCKED_PLAYLISTS = "locked_playlists"
 const val QUEUE_HEIGHT = "queue_height"
 const val LASTFM_LOGIN = "lastfm_login"
 const val LISTENBRAINZ_LOGIN = "listenbrainz_login"
+
+// Artist separator preferences
+const val ARTIST_SEPARATORS = "artist_separators"
+const val ARTIST_SEPARATOR_FEAT_DOT = "artist_sep_feat"
+const val ARTIST_SEPARATOR_FT_DOT = "artist_sep_ft"
+const val ARTIST_SEPARATOR_SEMICOLON = "artist_sep_semicolon"
+const val ARTIST_SEPARATOR_SLASH = "artist_sep_slash"
+const val ARTIST_SEPARATOR_COMMA = "artist_sep_comma"
+const val ARTIST_SEPARATOR_AMPERSAND = "artist_sep_ampersand"

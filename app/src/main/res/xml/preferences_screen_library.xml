@@ -118,6 +118,15 @@
             app:widgetLayout="@layout/preference_seekbar"
             app:key="artist_minimum_songs"/>
 
+        <MultiSelectListPreference
+            app:iconSpaceReserved="true"
+            app:title="@string/artist_separators_title"
+            app:summary="@string/artist_separators_summary"
+            app:entries="@array/pref_artist_separator_entries"
+            app:entryValues="@array/pref_artist_separator_values"
+            app:layout="@layout/list_item_view"
+            app:key="artist_separators"/>
+
         <SeekBarPreference
             app:iconSpaceReserved="true"
             app:title="@string/album_min_songs_title"
