@@ -117,7 +117,9 @@ class RealLyricsRepository(
     }
 
     private fun cacheLyrics(songId: Long, result: LyricsResult): LyricsResult {
-        lyricsCache[songId] = result
+        if (!result.isEmpty || result.instrumental) {
+            lyricsCache[songId] = result
+        }
         return result
     }
 
