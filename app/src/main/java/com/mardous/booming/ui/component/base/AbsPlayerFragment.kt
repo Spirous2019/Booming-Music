@@ -151,7 +151,13 @@ abstract class AbsPlayerFragment(@LayoutRes layoutRes: Int) : Fragment(layoutRes
         }
         viewLifecycleOwner.launchAndRepeatWithViewLifecycle {
             playerViewModel.colorSchemeFlow.collect { scheme ->
-                applyColorScheme(scheme)?.start()
+                val ctx = context ?: return@collect
+                val resolvedScheme = if (scheme == PlayerColorScheme.Unspecified) {
+                    PlayerColorScheme.themeColorScheme(ctx)
+                } else {
+                    scheme
+                }
+                applyColorScheme(resolvedScheme)?.start()
             }
         }
         viewLifecycleOwner.launchAndRepeatWithViewLifecycle {

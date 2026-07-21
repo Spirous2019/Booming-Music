@@ -49,6 +49,8 @@ import com.mardous.booming.ui.component.base.MediaEntryViewHolder
 import com.mardous.booming.ui.component.menu.OnClickMenu
 import com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment
 import com.mardous.booming.ui.screen.player.PlayerViewModel
+import coil3.dispose
+import coil3.imageLoader
 import android.content.res.ColorStateList
 import me.zhanghai.android.fastscroll.PopupTextProvider
 import org.koin.androidx.viewmodel.ext.android.getViewModel
@@ -103,6 +105,8 @@ open class SongAdapter(
         holder.text?.setTextColor(activity.resolveColor(android.R.attr.textColorSecondary))
 
         if (isCurrentPlaying) {
+            // Cancel any pending Coil requests for this ImageView first!
+            holder.image?.dispose()
             // Set the graphic eq/equalizer icon
             holder.image?.setImageResource(R.drawable.ic_graphic_eq_24dp)
             holder.image?.imageTintList = ColorStateList.valueOf(activity.primaryColor())

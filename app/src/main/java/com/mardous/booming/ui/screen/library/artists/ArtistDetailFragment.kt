@@ -331,7 +331,12 @@ class ArtistDetailFragment : AbsMainActivityFragment(R.layout.fragment_artist_de
         if (lastFmArtist?.artist?.bio != null) {
             val bioContent = lastFmArtist.artist.bio.content
             if (bioContent != null && bioContent.trim().isNotEmpty()) {
-                biography = bioContent
+                val licenseIndex = bioContent.indexOf("User-contributed text is available under", ignoreCase = true)
+                biography = if (licenseIndex != -1) {
+                    bioContent.substring(0, licenseIndex).trim()
+                } else {
+                    bioContent
+                }
                 wikiAdapter.update(getString(R.string.about_x_title, getArtist().name), biography)
             }
         }

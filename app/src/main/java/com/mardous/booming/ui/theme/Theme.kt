@@ -132,7 +132,7 @@ fun PlayerTheme(
     val base = MaterialTheme.colorScheme
 
     val scheme = remember(playerColorScheme) {
-        if (playerColorScheme.mode == PlayerColorScheme.Mode.AppTheme) {
+        if (playerColorScheme.mode == PlayerColorScheme.Mode.AppTheme || playerColorScheme == PlayerColorScheme.Unspecified) {
             base
         } else {
             base.copy(

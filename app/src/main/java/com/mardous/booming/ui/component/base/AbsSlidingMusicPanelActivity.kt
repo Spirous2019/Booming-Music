@@ -313,7 +313,7 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
             if (mAnimate) {
                 if (visible) {
                     binding.navigationViewContainer?.isVisible = true
-                    navigationView.bringToFront()
+                    binding.navigationViewContainer?.bringToFront()
                     navigationView.show()
                 } else {
                     navigationView.hide()
@@ -327,7 +327,7 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
                 navigationView.isVisible = visible
                 binding.navigationViewContainer?.isVisible = visible
                 if (visible && isBottomNavView && panelState != STATE_EXPANDED) {
-                    navigationView.bringToFront()
+                    binding.navigationViewContainer?.bringToFront()
                 }
             }
         }
@@ -366,7 +366,7 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
         } else {
             if (playerViewModel.queue.isNotEmpty()) {
                 slidingPanel.elevation = 0f
-                navigationView.elevation = 5f
+                binding.navigationViewContainer?.elevation = 5f
                 if (isBottomNavVisible) {
                     if (animate) {
                         bottomSheetBehavior.peekHeightAnimate(heightOfBarWithTabs)

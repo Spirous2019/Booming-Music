@@ -278,9 +278,13 @@ fun View.animateTintColor(
                 is FloatingActionButton -> applyColor(animatedColor)
                 is MaterialButton -> applyColor(animatedColor, isIconButton)
                 is ImageButton -> {
-                    val imageTintList = getPrimaryTextColor(context, animatedColor.isColorLight)
-                    ImageViewCompat.setImageTintList(this@animateTintColor, imageTintList.toColorStateList())
-                    backgroundTintList = colorStateList
+                    if (isIconButton) {
+                        ImageViewCompat.setImageTintList(this@animateTintColor, colorStateList)
+                    } else {
+                        val imageTintList = getPrimaryTextColor(context, animatedColor.isColorLight)
+                        ImageViewCompat.setImageTintList(this@animateTintColor, imageTintList.toColorStateList())
+                        backgroundTintList = colorStateList
+                    }
                 }
                 is ImageView -> ImageViewCompat.setImageTintList(this@animateTintColor, colorStateList)
                 is TextView -> applyColor(animatedColor)

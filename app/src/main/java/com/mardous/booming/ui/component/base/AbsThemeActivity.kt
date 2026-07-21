@@ -29,6 +29,7 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import com.mardous.booming.R
 import com.mardous.booming.extensions.createAppTheme
+import com.mardous.booming.extensions.isNightMode
 import com.mardous.booming.extensions.hasQ
 import com.mardous.booming.extensions.resources.isColorLight
 import com.mardous.booming.extensions.resources.surfaceColor
@@ -44,7 +45,15 @@ abstract class AbsThemeActivity : AppCompatActivity() {
     @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {
         updateTheme()
-        enableEdgeToEdge(navigationBarStyle = SystemBarStyle.auto(TRANSPARENT, TRANSPARENT))
+        val appTheme = createAppTheme()
+        val isDark = appTheme.isBlackTheme || appTheme.id == com.mardous.booming.util.GeneralTheme.DARK || 
+                (appTheme.id == com.mardous.booming.util.GeneralTheme.AUTO && this.isNightMode)
+        val style = if (isDark) {
+            SystemBarStyle.dark(TRANSPARENT)
+        } else {
+            SystemBarStyle.light(TRANSPARENT, TRANSPARENT)
+        }
+        enableEdgeToEdge(statusBarStyle = style, navigationBarStyle = style)
         super.onCreate(savedInstanceState)
         windowInsetsController = WindowCompat.getInsetsController(window, window.decorView)
         if (hasQ()) {

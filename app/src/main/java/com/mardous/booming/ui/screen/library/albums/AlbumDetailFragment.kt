@@ -287,7 +287,13 @@ class AlbumDetailFragment : AbsMainActivityFragment(R.layout.fragment_album_deta
         val albumValue = lastFmAlbum.album
         if (albumValue != null) {
             if (!albumValue.wiki?.content.isNullOrEmpty()) {
-                biography = albumValue.wiki.content
+                val bioContent = albumValue.wiki.content
+                val licenseIndex = bioContent.indexOf("User-contributed text is available under", ignoreCase = true)
+                biography = if (licenseIndex != -1) {
+                    bioContent.substring(0, licenseIndex).trim()
+                } else {
+                    bioContent
+                }
                 wikiAdapter.update(getString(R.string.about_x_title, getAlbum().name), biography)
             }
         }

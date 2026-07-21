@@ -35,6 +35,7 @@ import com.mardous.booming.core.model.player.PlayerColorSchemeMode
 import com.mardous.booming.core.model.player.PlayerTintTarget
 import com.mardous.booming.core.model.player.surfaceTintTarget
 import com.mardous.booming.core.model.player.tintTarget
+import com.mardous.booming.core.model.player.iconButtonTintTarget
 import com.mardous.booming.core.model.theme.NowPlayingScreen
 import com.mardous.booming.databinding.FragmentDefaultPlayerBinding
 import com.mardous.booming.extensions.whichFragment
@@ -46,6 +47,8 @@ import androidx.core.content.ContextCompat
 import com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment
 import com.mardous.booming.ui.component.menu.findAppCompatActivity
 import com.mardous.booming.ui.component.menu.newPopupMenu
+
+import com.mardous.booming.extensions.resolveColor
 
 /**
  * @author Christians M. A. (mardous)
@@ -70,11 +73,12 @@ class DefaultPlayerFragment : AbsPlayerFragment(R.layout.fragment_default_player
     override val blurView: ImageView
         get() = binding.blur
 
-    private var primaryControlColor: Int = 0
+    private var primaryControlColor: Int = android.graphics.Color.WHITE
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentDefaultPlayerBinding.bind(view)
+        primaryControlColor = context?.resolveColor(com.google.android.material.R.attr.colorOnSurface) ?: android.graphics.Color.WHITE
         setupToolbar()
         setupCustomBottomBar()
         inflateMenuInView(playerToolbar)
@@ -163,11 +167,11 @@ class DefaultPlayerFragment : AbsPlayerFragment(R.layout.fragment_default_player
             binding.root.surfaceTintTarget(scheme.surfaceColor),
             binding.toolbar.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)
         ).also { list ->
-            binding.customSoundSettingsButton?.let { list.add(it.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
-            binding.customFavoriteButton?.let { list.add(it.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
-            binding.customLyricsButton?.let { list.add(it.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
-            binding.customQueueButton?.let { list.add(it.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
-            binding.customMenuButton?.let { list.add(it.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
+            binding.customSoundSettingsButton?.let { list.add(it.iconButtonTintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
+            binding.customFavoriteButton?.let { list.add(it.iconButtonTintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
+            binding.customLyricsButton?.let { list.add(it.iconButtonTintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
+            binding.customQueueButton?.let { list.add(it.iconButtonTintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
+            binding.customMenuButton?.let { list.add(it.iconButtonTintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
             list.addAll(playerControlsFragment.getTintTargets(scheme))
             updateButtonTints()
         }
