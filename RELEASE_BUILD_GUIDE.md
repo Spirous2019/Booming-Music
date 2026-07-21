@@ -13,6 +13,9 @@ The project contains a pre-configured keystore. Here are the credentials to use:
 *   **Key Alias:** `key0`
 *   **Key Password:** `booming123`
 
+> [!TIP]
+> The keystore file (`my-release-key.jks`) is tracked and committed inside this repository, making it immediately available when you clone this project on another device.
+
 ---
 
 ## 🛠️ Step-by-Step Build Instructions
