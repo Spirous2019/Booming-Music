@@ -109,7 +109,12 @@ class ArtistAdapter constructor(
     }
 
     override fun getPopupText(view: View, position: Int): CharSequence {
-        return dataSet.getOrNull(position)?.displayName()?.asSectionName(sortMode) ?: ""
+        val artist = dataSet.getOrNull(position) ?: return ""
+        return if (sortMode?.selectedKey == com.mardous.booming.core.model.sort.SortKey.AZ) {
+            artist.displayName().asSectionName(sortMode)
+        } else {
+            ""
+        }
     }
 
     open inner class ViewHolder(itemView: View) : MediaEntryViewHolder(itemView) {

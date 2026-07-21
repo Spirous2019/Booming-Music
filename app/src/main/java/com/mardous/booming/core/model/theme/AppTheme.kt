@@ -19,9 +19,6 @@ package com.mardous.booming.core.model.theme
 
 import android.content.Context
 import androidx.annotation.StyleRes
-import androidx.appcompat.view.ContextThemeWrapper
-import androidx.core.content.ContextCompat
-import com.google.android.material.color.DynamicColors
 import com.mardous.booming.R
 import com.mardous.booming.util.GeneralTheme
 import com.mardous.booming.util.Preferences
@@ -29,9 +26,7 @@ import com.mardous.booming.util.Preferences
 class AppTheme private constructor(
     val id: String,
     @StyleRes
-    val themeRes: Int,
-    val applyDynamicColors: Boolean,
-    val seedColor: Int? = null
+    val themeRes: Int
 ) {
 
     val isBlackTheme: Boolean
@@ -48,27 +43,10 @@ class AppTheme private constructor(
         fun createAppTheme(context: Context): AppTheme {
             val generalTheme = Preferences.generalTheme
             val themeMode = Preferences.getThemeMode(generalTheme)
-            if (DynamicColors.isDynamicColorAvailable()) {
-                if (Preferences.isMaterialYouTheme) {
-                    return AppTheme(
-                        id = generalTheme,
-                        themeRes = themeMode.themeRes,
-                        applyDynamicColors = true
-                    )
-                }
-                if (context is ContextThemeWrapper) {
-                    return AppTheme(
-                        id = generalTheme,
-                        themeRes = themeMode.themeRes,
-                        applyDynamicColors = true,
-                        seedColor = ContextCompat.getColor(context, R.color.md_theme_primary)
-                    )
-                }
-            }
+
             return AppTheme(
                 id = generalTheme,
-                themeRes = themeMode.themeRes,
-                applyDynamicColors = false
+                themeRes = themeMode.themeRes
             )
         }
     }

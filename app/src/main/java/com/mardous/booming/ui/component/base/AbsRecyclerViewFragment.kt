@@ -33,9 +33,12 @@ import androidx.core.view.updatePadding
 import androidx.fragment.app.DialogFragment
 import androidx.lifecycle.lifecycleScope
 import androidx.navigation.fragment.findNavController
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.LinearSmoothScroller
 import androidx.recyclerview.widget.RecyclerView
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.mardous.booming.R
+import com.mardous.booming.ui.adapters.song.SongAdapter
 import com.mardous.booming.core.model.MediaEvent
 import com.mardous.booming.databinding.FragmentMainRecyclerBinding
 import com.mardous.booming.extensions.createBoomingMusicBalloon
@@ -105,6 +108,29 @@ abstract class AbsRecyclerViewFragment<A : RecyclerView.Adapter<*>, LM : Recycle
             binding.shuffleButton.isVisible = false
         }
 
+        binding.recyclerView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
+            override fun onScrolled(recyclerView: RecyclerView, dx: Int, dy: Int) {
+                super.onScrolled(recyclerView, dx, dy)
+                updateScrollToPlayingButtonVisibility()
+            }
+        })
+
+        binding.scrollToPlayingButton.setOnClickListener {
+            val songAdapter = adapter as? SongAdapter
+            val songs = songAdapter?.dataSet ?: emptyList()
+            val playingSong = playerViewModel.currentSong
+            val position = if (playingSong.id != -1L) songs.indexOfFirst { it.id == playingSong.id } else -1
+            if (position != -1) {
+                val smoothScroller = object : LinearSmoothScroller(activity) {
+                    override fun getVerticalSnapPreference(): Int {
+                        return SNAP_TO_START
+                    }
+                }
+                smoothScroller.targetPosition = position
+                binding.recyclerView.layoutManager?.startSmoothScroll(smoothScroller)
+            }
+        }
+
         libraryViewModel.getMiniPlayerMargin().observe(viewLifecycleOwner) {
             binding.recyclerView.updatePadding(bottom = it.totalMargin)
         }
@@ -112,12 +138,23 @@ abstract class AbsRecyclerViewFragment<A : RecyclerView.Adapter<*>, LM : Recycle
             binding.shuffleButton.updateLayoutParams<ViewGroup.MarginLayoutParams> {
                 bottomMargin = it.totalMargin
             }
+            binding.scrollToPlayingButton.updateLayoutParams<ViewGroup.MarginLayoutParams> {
+                bottomMargin = it.totalMargin
+            }
         }
         viewLifecycleOwner.launchAndRepeatWithViewLifecycle {
-            playerViewModel.mediaEvent.collect {
-                if (it == MediaEvent.PlaybackStarted) {
-                    whichFragment<DialogFragment>("SHUFFLE_MODE")
-                        ?.dismissAllowingStateLoss()
+            launch {
+                playerViewModel.mediaEvent.collect {
+                    if (it == MediaEvent.PlaybackStarted) {
+                        whichFragment<DialogFragment>("SHUFFLE_MODE")
+                            ?.dismissAllowingStateLoss()
+                    }
+                }
+            }
+            launch {
+                playerViewModel.currentSongFlow.collect {
+                    updateScrollToPlayingButtonVisibility()
+                    adapter?.notifyDataSetChanged()
                 }
             }
         }
@@ -257,5 +294,28 @@ abstract class AbsRecyclerViewFragment<A : RecyclerView.Adapter<*>, LM : Recycle
     override fun onPause() {
         super.onPause()
         (adapter as? AbsMultiSelectAdapter<*, *>)?.actionMode?.finish()
+    }
+
+    private fun updateScrollToPlayingButtonVisibility() {
+        val songAdapter = adapter as? SongAdapter
+        val songs = songAdapter?.dataSet ?: emptyList()
+        val playingSong = playerViewModel.currentSong
+        val position = if (playingSong.id != -1L) songs.indexOfFirst { it.id == playingSong.id } else -1
+
+        if (position != -1) {
+            val layoutManager = binding.recyclerView.layoutManager as? LinearLayoutManager
+            val firstVisible = layoutManager?.findFirstVisibleItemPosition() ?: -1
+            val lastVisible = layoutManager?.findLastVisibleItemPosition() ?: -1
+
+            val isNotVisible = position < firstVisible || position > lastVisible
+
+            if (isNotVisible) {
+                binding.scrollToPlayingButton.show()
+            } else {
+                binding.scrollToPlayingButton.hide()
+            }
+        } else {
+            binding.scrollToPlayingButton.hide()
+        }
     }
 }

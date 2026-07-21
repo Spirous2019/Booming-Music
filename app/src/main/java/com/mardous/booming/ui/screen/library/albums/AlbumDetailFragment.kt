@@ -75,6 +75,9 @@ import com.mardous.booming.ui.component.menu.onAlbumMenu
 import com.mardous.booming.ui.component.menu.onAlbumsMenu
 import com.mardous.booming.ui.component.menu.onSongMenu
 import com.mardous.booming.ui.component.menu.onSongsMenu
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
+import com.mardous.booming.ui.dialogs.songs.ArtistChooserBottomSheet
+import com.mardous.booming.util.ArtistNameSplitter
 import com.mardous.booming.util.Preferences
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.parameter.parametersOf
@@ -378,10 +381,23 @@ class AlbumDetailFragment : AbsMainActivityFragment(R.layout.fragment_album_deta
     }
 
     private fun goToArtist() {
-        if (albumArtistExists) {
-            findNavController().navigate(R.id.nav_artist_detail, artistDetailArgs(-1, getAlbum().albumArtistName))
+        val artistName = if (albumArtistExists) getAlbum().albumArtistName else getAlbum().artistName
+        val parsedNames = ArtistNameSplitter.split(artistName)
+        if (parsedNames.size <= 1) {
+            if (albumArtistExists) {
+                findNavController().navigate(R.id.nav_artist_detail, artistDetailArgs(-1, getAlbum().albumArtistName))
+            } else {
+                findNavController().navigate(R.id.nav_artist_detail, artistDetailArgs(getAlbum().artistId, null))
+            }
         } else {
-            findNavController().navigate(R.id.nav_artist_detail, artistDetailArgs(getAlbum().artistId, null))
+            ArtistChooserBottomSheet.create(parsedNames)
+                .setCallback { selectedName ->
+                    findNavController().navigate(
+                        R.id.nav_artist_detail,
+                        artistDetailArgs(getAlbum().artistId, selectedName)
+                    )
+                }
+                .show(childFragmentManager, "ARTIST_CHOOSER")
         }
     }
 

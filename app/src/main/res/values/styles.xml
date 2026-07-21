@@ -5,7 +5,7 @@
 
     <style name="Theme.Booming.Light" parent="Base.Theme.Booming.Light"/>
 
-    <style name="Theme.Booming.Black" parent="Base.Theme.Booming.Black"/>
+    <style name="Theme.Booming.Black" parent="Theme.Booming"/>
 
     <style name="Theme.Booming.FollowSystem" parent="Base.Theme.Booming.Adaptive"/>
 
@@ -30,7 +30,7 @@
         <item name="android:paddingTop">16dp</item>
         <item name="android:paddingBottom">16dp</item>
         <item name="android:textColor">?colorOnSurface</item>
-        <item name="backgroundTint">?colorSurfaceContainerLow</item>
+        <item name="backgroundTint">?colorSurfaceContainer</item>
         <item name="cornerRadius">20dp</item>
         <item name="iconPadding">16dp</item>
         <item name="iconTint">?colorOnSurface</item>

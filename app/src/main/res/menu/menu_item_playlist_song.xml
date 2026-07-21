@@ -23,9 +23,6 @@
             <item
                 android:id="@+id/action_go_to_artist"
                 android:title="@string/artist"/>
-            <item
-                android:id="@+id/action_go_to_genre"
-                android:title="@string/genre"/>
         </menu>
     </item>
     <item

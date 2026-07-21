@@ -168,6 +168,7 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layoutRes: Int) : Fragment(l
         Preferences.registerOnSharedPreferenceChangeListener(this)
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onStart() {
         super.onStart()
         playerAnimator = onCreatePlayerAnimator()
@@ -178,6 +179,17 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layoutRes: Int) : Fragment(l
             )
         }
         songTotalTime?.setOnClickListener(this)
+        songArtistView?.setOnClickListener(this)
+        songArtistView?.setOnTouchListener { v, event ->
+            when (event.action) {
+                MotionEvent.ACTION_DOWN -> true
+                MotionEvent.ACTION_UP -> {
+                    v.performClick()
+                    true
+                }
+                else -> false
+            }
+        }
         songInfoView?.setOnLongClickListener(this)
         setUpProgressSlider()
     }
@@ -199,6 +211,9 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layoutRes: Int) : Fragment(l
             songTotalTime -> {
                 val preferRemainingTime = Preferences.preferRemainingTime
                 Preferences.preferRemainingTime = !preferRemainingTime
+            }
+            songArtistView -> {
+                playerFragment?.onQuickActionEvent(NowPlayingAction.OpenArtist)
             }
         }
     }

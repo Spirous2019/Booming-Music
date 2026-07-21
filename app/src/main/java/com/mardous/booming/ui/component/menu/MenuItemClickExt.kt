@@ -23,7 +23,9 @@ import android.view.View
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import com.mardous.booming.R
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.mardous.booming.data.local.EditTarget
+import com.mardous.booming.ui.dialogs.songs.ArtistChooserBottomSheet
 import com.mardous.booming.data.local.room.PlaylistWithSongs
 import com.mardous.booming.data.mapper.toSongs
 import com.mardous.booming.data.model.Album
@@ -46,6 +48,8 @@ import com.mardous.booming.ui.screen.player.PlayerViewModel
 import com.mardous.booming.ui.screen.tageditor.AlbumTagEditorActivity
 import com.mardous.booming.ui.screen.tageditor.ArtistTagEditorActivity
 import com.mardous.booming.ui.screen.tageditor.SongTagEditorActivity
+import com.mardous.booming.util.ArtistNameSplitter
+import com.mardous.booming.util.Preferences
 import com.mardous.booming.util.m3u.M3UWriter
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -88,16 +92,21 @@ fun Song.onSongMenu(
         }
 
         R.id.action_go_to_artist -> {
+            val parsedNames = ArtistNameSplitter.split(this.artistName)
             val navController = fragment.findActivityNavController(R.id.fragment_container)
-            navController.navigate(R.id.nav_artist_detail, artistDetailArgs(this))
-            true
-        }
-
-        R.id.action_go_to_genre -> {
-            val libraryViewModel = fragment.getActivityViewModel<LibraryViewModel>()
-            libraryViewModel.genreBySong(this).observe(fragment.viewLifecycleOwner) {
-                val navController = fragment.findActivityNavController(R.id.fragment_container)
-                navController.navigate(R.id.nav_genre_detail, genreDetailArgs(it))
+            if (parsedNames.size <= 1) {
+                // Single artist: navigate directly
+                navController.navigate(R.id.nav_artist_detail, artistDetailArgs(this))
+            } else {
+                // Multi-artist: show custom bottom sheet picker
+                ArtistChooserBottomSheet.create(parsedNames)
+                    .setCallback { selectedName ->
+                        navController.navigate(
+                            R.id.nav_artist_detail,
+                            artistDetailArgs(this.artistId, selectedName)
+                        )
+                    }
+                    .show(fragment.childFragmentManager, "ARTIST_CHOOSER")
             }
             true
         }
@@ -205,8 +214,22 @@ fun List<Song>.onSongsMenu(fragment: Fragment, menuItem: MenuItem): Boolean {
 fun Album.onAlbumMenu(fragment: Fragment, menuItem: MenuItem): Boolean {
     return when (menuItem.itemId) {
         R.id.action_go_to_artist -> {
-            fragment.findActivityNavController(R.id.fragment_container)
-                .navigate(R.id.nav_artist_detail, artistDetailArgs(this))
+            val artistName = if (Preferences.onlyAlbumArtists && !this.albumArtistName.isNullOrEmpty()) this.albumArtistName else this.artistName
+            val parsedNames = ArtistNameSplitter.split(artistName)
+            val navController = fragment.findActivityNavController(R.id.fragment_container)
+            if (parsedNames.size <= 1) {
+                navController.navigate(R.id.nav_artist_detail, artistDetailArgs(this))
+            } else {
+                // Multi-artist: show custom bottom sheet picker
+                ArtistChooserBottomSheet.create(parsedNames)
+                    .setCallback { selectedName ->
+                        navController.navigate(
+                            R.id.nav_artist_detail,
+                            artistDetailArgs(this.artistId, selectedName)
+                        )
+                    }
+                    .show(fragment.childFragmentManager, "ARTIST_CHOOSER")
+            }
             true
         }
 

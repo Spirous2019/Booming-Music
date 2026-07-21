@@ -148,7 +148,6 @@ class DefaultPlayerControlsFragment : AbsPlayerControlsFragment(R.layout.fragmen
         _binding?.let { binding ->
             if (Preferences.isShowNextSong) {
                 binding.queueInfo.visibility = View.VISIBLE
-                setViewAction(binding.queueInfo, NowPlayingAction.OpenPlayQueue)
             } else {
                 binding.queueInfo.visibility = View.GONE
             }

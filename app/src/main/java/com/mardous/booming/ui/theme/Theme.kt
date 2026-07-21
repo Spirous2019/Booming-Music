@@ -1,12 +1,10 @@
 package com.mardous.booming.ui.theme
 
-import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.colorResource
 import com.mardous.booming.R
 import com.mardous.booming.core.model.player.PlayerColorScheme
@@ -92,26 +90,30 @@ private val darkScheme = darkColorScheme(
 fun BoomingMusicTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     blackTheme: Boolean = Preferences.blackTheme,
-    dynamicColor: Boolean = Preferences.isMaterialYouTheme,
     content: @Composable () -> Unit
 ) {
     var colorScheme = when {
-        dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
-            val context = LocalContext.current
-            if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
-        }
-
         darkTheme -> darkScheme
         else -> lightScheme
     }
 
     if (darkTheme && blackTheme) {
         colorScheme = colorScheme.copy(
+            primary = Color(0xFF3A86F5),
+            onPrimary = Color.White,
             background = Color.Black,
+            onBackground = Color.White,
             surface = Color.Black,
-            surfaceContainer = colorResource(R.color.surfaceContainerBlack),
-            surfaceContainerLow = colorResource(R.color.surfaceContainerLowBlack),
-            surfaceContainerLowest = colorResource(R.color.surfaceContainerLowestBlack)
+            onSurface = Color.White,
+            surfaceVariant = Color(0xFF0E0E10),
+            onSurfaceVariant = Color(0xFFA2A2A8),
+            surfaceContainer = Color(0xFF0E0E10),
+            surfaceContainerLow = Color(0xFF08080A),
+            surfaceContainerLowest = Color.Black,
+            surfaceContainerHigh = Color(0xFF141416),
+            surfaceContainerHighest = Color(0xFF1C1C1F),
+            secondaryContainer = Color(0xFF0F253C),
+            onSecondaryContainer = Color.White
         )
     }
 

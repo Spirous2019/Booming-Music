@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:xliff="urn:oasis:names:tc:xliff:document:1.2">
+    <string name="up_next">Up next</string>
     <string name="app_widget_responsive">Responsive</string>
     <string name="app_widget_responsive_desc">A widget that adapts its layout to different sizes</string>
     <string name="app_widget_card">Card</string>
@@ -15,6 +16,7 @@
     <string name="repeat_mode">Repeat mode</string>
     <string name="shuffle_button_tip">Tap for normal shuffle. Long press for advanced options.</string>
     <string name="action_play_pause">Play/Pause</string>
+    <string name="scroll_to_current_playing_song">Scroll to currently playing song</string>
     <string name="action_pause">Pause</string>
     <string name="action_next">Next</string>
     <string name="action_previous">Previous</string>

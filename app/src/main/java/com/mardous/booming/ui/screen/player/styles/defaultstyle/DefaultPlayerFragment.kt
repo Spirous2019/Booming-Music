@@ -42,6 +42,10 @@ import com.mardous.booming.ui.component.base.AbsPlayerControlsFragment
 import com.mardous.booming.ui.component.base.AbsPlayerFragment
 import com.mardous.booming.util.DISPLAY_NEXT_SONG
 import com.mardous.booming.util.Preferences
+import androidx.core.content.ContextCompat
+import com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment
+import com.mardous.booming.ui.component.menu.findAppCompatActivity
+import com.mardous.booming.ui.component.menu.newPopupMenu
 
 /**
  * @author Christians M. A. (mardous)
@@ -72,6 +76,7 @@ class DefaultPlayerFragment : AbsPlayerFragment(R.layout.fragment_default_player
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentDefaultPlayerBinding.bind(view)
         setupToolbar()
+        setupCustomBottomBar()
         inflateMenuInView(playerToolbar)
         ViewCompat.setOnApplyWindowInsetsListener(view) { v: View, insets: WindowInsetsCompat ->
             val systemBars = insets.getInsets(Type.systemBars())
@@ -89,14 +94,82 @@ class DefaultPlayerFragment : AbsPlayerFragment(R.layout.fragment_default_player
         }
     }
 
+    private fun setupCustomBottomBar() {
+        binding.customSoundSettingsButton?.setOnClickListener {
+            onQuickActionEvent(NowPlayingAction.SoundSettings)
+        }
+        binding.customFavoriteButton?.setOnClickListener {
+            onQuickActionEvent(NowPlayingAction.ToggleFavoriteState)
+        }
+        binding.customLyricsButton?.setOnClickListener {
+            onQuickActionEvent(NowPlayingAction.Lyrics)
+        }
+        binding.customQueueButton?.setOnClickListener {
+            onQuickActionEvent(NowPlayingAction.OpenPlayQueue)
+        }
+        
+        binding.customMenuButton?.let { menuBtn ->
+            val popupMenu = newPopupMenu(menuBtn, R.menu.menu_now_playing) {
+                onMenuInflated(it)
+            }
+            menuBtn.setOnClickListener {
+                val activity = menuBtn.context.findAppCompatActivity()
+                if (activity != null) {
+                    MenuBottomSheetDialogFragment()
+                        .setMenu(popupMenu.menu) { itemId ->
+                            val item = popupMenu.menu.findItem(itemId)
+                            if (item != null) {
+                                onMenuItemClick(item)
+                            }
+                        }
+                        .show(activity.supportFragmentManager, MenuBottomSheetDialogFragment.TAG)
+                } else {
+                    popupMenu.setOnMenuItemClickListener { onMenuItemClick(it) }
+                    popupMenu.show()
+                }
+            }
+        }
+        
+        updateButtonTints()
+    }
+
+    override fun onIsFavoriteChanged(isFavorite: Boolean, withAnimation: Boolean) {
+        super.onIsFavoriteChanged(isFavorite, withAnimation)
+        val iconRes = if (isFavorite) R.drawable.ic_favorite_24dp else R.drawable.ic_favorite_outline_24dp
+        binding.customFavoriteButton?.setImageResource(iconRes)
+        updateButtonTints()
+    }
+
+    override fun onLyricsVisibilityChange(animatorSet: android.animation.AnimatorSet, lyricsVisible: Boolean) {
+        super.onLyricsVisibilityChange(animatorSet, lyricsVisible)
+        val iconRes = if (lyricsVisible) R.drawable.ic_lyrics_24dp else R.drawable.ic_lyrics_outline_24dp
+        binding.customLyricsButton?.setImageResource(iconRes)
+        updateButtonTints()
+    }
+
+    private fun updateButtonTints() {
+        val colorStateList = android.content.res.ColorStateList.valueOf(primaryControlColor)
+        binding.customSoundSettingsButton?.imageTintList = colorStateList
+        binding.customFavoriteButton?.imageTintList = colorStateList
+        binding.customLyricsButton?.imageTintList = colorStateList
+        binding.customQueueButton?.imageTintList = colorStateList
+        binding.customMenuButton?.imageTintList = colorStateList
+    }
+
     override fun getTintTargets(scheme: PlayerColorScheme): List<PlayerTintTarget> {
         val oldPrimaryControlColor = primaryControlColor
         primaryControlColor = scheme.onSurfaceColor
         return mutableListOf(
             binding.root.surfaceTintTarget(scheme.surfaceColor),
             binding.toolbar.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)
-        ).also {
-            it.addAll(playerControlsFragment.getTintTargets(scheme))
+        ).also { list ->
+            binding.customSoundSettingsButton?.let { list.add(it.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
+            binding.customFavoriteButton?.let { list.add(it.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
+            binding.customLyricsButton?.let { list.add(it.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
+            binding.customQueueButton?.let { list.add(it.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
+            binding.customMenuButton?.let { list.add(it.tintTarget(oldPrimaryControlColor, scheme.onSurfaceColor)) }
+            list.addAll(playerControlsFragment.getTintTargets(scheme))
+            updateButtonTints()
         }
     }
 

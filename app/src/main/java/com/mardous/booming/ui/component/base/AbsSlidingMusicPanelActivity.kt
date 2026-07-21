@@ -312,13 +312,20 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
             val mAnimate = animate && isBottomNavView && panelState == STATE_COLLAPSED
             if (mAnimate) {
                 if (visible) {
+                    binding.navigationViewContainer?.isVisible = true
                     navigationView.bringToFront()
                     navigationView.show()
                 } else {
                     navigationView.hide()
+                    binding.navigationViewContainer?.postDelayed({
+                        if (!navigationView.isVisible) {
+                            binding.navigationViewContainer?.isVisible = false
+                        }
+                    }, 300)
                 }
             } else {
                 navigationView.isVisible = visible
+                binding.navigationViewContainer?.isVisible = visible
                 if (visible && isBottomNavView && panelState != STATE_EXPANDED) {
                     navigationView.bringToFront()
                 }
@@ -483,8 +490,8 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
         miniPlayerFragment?.view?.alpha = 1 - (progress / 0.2F)
         miniPlayerFragment?.view?.isGone = alpha == 0f
         if (!resources.isLandscape) {
-            binding.navigationView.translationY = progress * 500
-            binding.navigationView.alpha = alpha
+            binding.navigationViewContainer?.translationY = progress * 500
+            binding.navigationViewContainer?.alpha = alpha
         }
         binding.playerContainer.alpha = (progress - 0.2F) / 0.2F
     }

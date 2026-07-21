@@ -17,11 +17,23 @@
 
 package com.mardous.booming.ui.component.menu
 
+import android.content.Context
+import android.content.ContextWrapper
 import android.view.Menu
 import android.view.View
+import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.PopupMenu
 
 typealias MenuConsumer = (Menu) -> Unit
+
+fun Context.findAppCompatActivity(): AppCompatActivity? {
+    var ctx = this
+    while (ctx is ContextWrapper) {
+        if (ctx is AppCompatActivity) return ctx
+        ctx = ctx.baseContext
+    }
+    return null
+}
 
 fun newPopupMenu(anchor: View, menuRes: Int, menuConsumer: MenuConsumer? = null): PopupMenu {
     return PopupMenu(anchor.context, anchor).apply {
@@ -35,13 +47,28 @@ fun newPopupMenu(anchor: View, menuRes: Int, menuConsumer: MenuConsumer? = null)
 abstract class OnClickMenu : View.OnClickListener, PopupMenu.OnMenuItemClickListener {
 
     override fun onClick(v: View) {
-        newPopupMenu(v, popupMenuRes) { menu ->
+        val popup = newPopupMenu(v, popupMenuRes) { menu ->
             onPreparePopup(menu)
-        }.also { popup ->
+        }
+        
+        val activity = v.context.findAppCompatActivity()
+        if (activity != null) {
+            val dialog = MenuBottomSheetDialogFragment()
+                .setMenu(popup.menu) { itemId ->
+                    val item = popup.menu.findItem(itemId)
+                    if (item != null) {
+                        onMenuItemClick(item)
+                    }
+                }
+            setupBottomSheet(dialog)
+            dialog.show(activity.supportFragmentManager, MenuBottomSheetDialogFragment.TAG)
+        } else {
             popup.setOnMenuItemClickListener(this)
             popup.show()
         }
     }
+
+    protected open fun setupBottomSheet(dialog: MenuBottomSheetDialogFragment) {}
 
     protected abstract val popupMenuRes: Int
 

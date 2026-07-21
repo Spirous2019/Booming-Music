@@ -9,9 +9,9 @@
     <color name="secondary_text_disabled_dark">#36ffffff</color>
     <color name="secondary_text_disabled_light">#24000000</color>
 
-    <color name="surfaceContainerBlack">#090909</color>
-    <color name="surfaceContainerLowBlack">#070707</color>
-    <color name="surfaceContainerLowestBlack">#0B0B0B</color>
+    <color name="surfaceContainerBlack">#0E0E10</color>
+    <color name="surfaceContainerLowBlack">#08080A</color>
+    <color name="surfaceContainerLowestBlack">#000000</color>
     <color name="elevationOverlayBlack">@android:color/black</color>
 
     <color name="radial_gradient_black_overlay">#B3000000</color>
@@ -71,4 +71,5 @@
     <color name="md_theme_surfaceContainer">#EFEDF4</color>
     <color name="md_theme_surfaceContainerHigh">#E9E7EF</color>
     <color name="md_theme_surfaceContainerHighest">#E3E1E9</color>
+    <color name="m3_popupmenu_overlay_color">@android:color/transparent</color>
 </resources>

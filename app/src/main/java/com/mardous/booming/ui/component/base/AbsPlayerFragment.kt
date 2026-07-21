@@ -83,10 +83,13 @@ import com.mardous.booming.extensions.utilities.buildInfoString
 import com.mardous.booming.extensions.whichFragment
 import com.mardous.booming.ui.component.menu.newPopupMenu
 import com.mardous.booming.ui.component.menu.onSongMenu
+import com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment
+import com.mardous.booming.ui.component.menu.findAppCompatActivity
 import com.mardous.booming.ui.dialogs.WebSearchDialog
 import com.mardous.booming.ui.dialogs.playlists.AddToPlaylistDialog
 import com.mardous.booming.ui.dialogs.songs.DeleteSongsDialog
 import com.mardous.booming.ui.dialogs.songs.ShareSongDialog
+import com.mardous.booming.ui.dialogs.songs.ArtistChooserBottomSheet
 import com.mardous.booming.ui.screen.MainActivity
 import com.mardous.booming.ui.screen.equalizer.EqualizerFragment
 import com.mardous.booming.ui.screen.equalizer.EqualizerFragmentArgs
@@ -98,6 +101,7 @@ import com.mardous.booming.ui.screen.player.PlayerGesturesController.GestureType
 import com.mardous.booming.ui.screen.player.PlayerViewModel
 import com.mardous.booming.ui.screen.player.cover.CoverPagerFragment
 import com.mardous.booming.ui.screen.tageditor.SongTagEditorActivity
+import com.mardous.booming.util.ArtistNameSplitter
 import com.mardous.booming.util.NOW_PLAYING_EXTRA_INFO
 import com.mardous.booming.util.Preferences
 import kotlinx.coroutines.flow.combine
@@ -190,11 +194,22 @@ abstract class AbsPlayerFragment(@LayoutRes layoutRes: Int) : Fragment(layoutRes
             } else {
                 val popupMenu = newPopupMenu(view, R.menu.menu_now_playing) {
                     onMenuInflated(it)
-                }.also { popupMenu ->
-                    popupMenu.setOnMenuItemClickListener { onMenuItemClick(it) }
                 }
                 view.setOnClickListener {
-                    popupMenu.show()
+                    val activity = view.context.findAppCompatActivity()
+                    if (activity != null) {
+                        MenuBottomSheetDialogFragment()
+                            .setMenu(popupMenu.menu) { itemId ->
+                                val item = popupMenu.menu.findItem(itemId)
+                                if (item != null) {
+                                    onMenuItemClick(item)
+                                }
+                            }
+                            .show(activity.supportFragmentManager, MenuBottomSheetDialogFragment.TAG)
+                    } else {
+                        popupMenu.setOnMenuItemClickListener { onMenuItemClick(it) }
+                        popupMenu.show()
+                    }
                 }
                 return popupMenu
             }
@@ -254,13 +269,6 @@ abstract class AbsPlayerFragment(@LayoutRes layoutRes: Int) : Fragment(layoutRes
 
             R.id.action_go_to_artist -> {
                 onQuickActionEvent(NowPlayingAction.OpenArtist)
-                true
-            }
-
-            R.id.action_go_to_genre -> {
-                libraryViewModel.genreBySong(currentSong).observe(viewLifecycleOwner) { genre ->
-                    goToGenre(requireActivity(), genre)
-                }
                 true
             }
 
@@ -450,7 +458,18 @@ abstract class AbsPlayerFragment(@LayoutRes layoutRes: Int) : Fragment(layoutRes
             }
 
             NowPlayingAction.OpenArtist -> {
-                goToArtist(requireActivity(), currentSong)
+                val parsedNames = ArtistNameSplitter.split(currentSong.artistName)
+                if (parsedNames.size <= 1) {
+                    // Single artist: navigate directly
+                    goToArtist(requireActivity(), currentSong)
+                } else {
+                    // Multi-artist: show custom bottom sheet picker
+                    ArtistChooserBottomSheet.create(parsedNames)
+                        .setCallback { selectedName ->
+                            goToArtist(requireActivity(), currentSong, selectedName)
+                        }
+                        .show(childFragmentManager, "ARTIST_CHOOSER")
+                }
                 true
             }
 
@@ -694,11 +713,16 @@ abstract class AbsPlayerFragment(@LayoutRes layoutRes: Int) : Fragment(layoutRes
     }
 }
 
-fun goToArtist(activity: Activity, song: Song) {
+fun goToArtist(activity: Activity, song: Song, nameOverride: String? = null) {
+    val args = if (nameOverride != null) {
+        artistDetailArgs(song.artistId, nameOverride)
+    } else {
+        artistDetailArgs(song)
+    }
     goToDestination(
         activity,
         R.id.nav_artist_detail,
-        artistDetailArgs(song),
+        args,
         removeTransition = true,
         singleTop = false
     )

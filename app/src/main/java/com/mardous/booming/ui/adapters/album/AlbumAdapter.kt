@@ -121,9 +121,9 @@ open class AlbumAdapter(
     override fun getPopupText(view: View, position: Int): CharSequence {
         val album = dataSet.getOrNull(position) ?: return ""
         return when (sortMode?.selectedKey) {
-            SortKey.Artist -> album.displayArtistName().asSectionName(sortMode)
-            SortKey.AZ -> album.name.asSectionName(sortMode)
-            else -> album.name.asSectionName(sortMode)
+            com.mardous.booming.core.model.sort.SortKey.Artist -> album.displayArtistName().asSectionName(sortMode)
+            com.mardous.booming.core.model.sort.SortKey.AZ -> album.name.asSectionName(sortMode)
+            else -> ""
         }
     }
 

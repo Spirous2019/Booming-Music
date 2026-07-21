@@ -47,10 +47,18 @@ import com.mardous.booming.ui.ISongCallback
 import com.mardous.booming.ui.component.base.AbsMultiSelectAdapter
 import com.mardous.booming.ui.component.base.MediaEntryViewHolder
 import com.mardous.booming.ui.component.menu.OnClickMenu
+import com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment
 import com.mardous.booming.ui.screen.player.PlayerViewModel
-import com.mardous.booming.util.Preferences
+import android.content.res.ColorStateList
 import me.zhanghai.android.fastscroll.PopupTextProvider
 import org.koin.androidx.viewmodel.ext.android.getViewModel
+import com.mardous.booming.util.Preferences
+import com.mardous.booming.extensions.resolveColor
+import com.mardous.booming.extensions.resources.primaryColor
+import com.mardous.booming.extensions.resources.withAlpha
+import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.RecyclerView
+import kotlinx.coroutines.launch
 
 @SuppressLint("NotifyDataSetChanged")
 @Suppress("LeakingThis")
@@ -68,6 +76,10 @@ open class SongAdapter(
             notifyDataSetChanged()
         }
 
+    protected val playerViewModel: PlayerViewModel by lazy {
+        activity.getViewModel()
+    }
+
     protected open fun createViewHolder(view: View, viewType: Int): ViewHolder {
         return ViewHolder(view)
     }
@@ -80,10 +92,28 @@ open class SongAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val song: Song = dataSet[position]
         val isChecked = isChecked(song)
-        holder.isActivated = isChecked
+        val isCurrentPlaying = playerViewModel.currentSong.id == song.id
+
+        holder.isActivated = isChecked || isCurrentPlaying
         holder.menu?.isGone = isChecked
         holder.title?.text = getSongTitle(song)
         holder.text?.text = getSongText(song)
+
+        holder.title?.setTextColor(activity.resolveColor(android.R.attr.textColorPrimary))
+        holder.text?.setTextColor(activity.resolveColor(android.R.attr.textColorSecondary))
+
+        if (isCurrentPlaying) {
+            // Set the graphic eq/equalizer icon
+            holder.image?.setImageResource(R.drawable.ic_graphic_eq_24dp)
+            holder.image?.imageTintList = ColorStateList.valueOf(activity.primaryColor())
+            holder.image?.setBackgroundColor(activity.resolveColor(com.google.android.material.R.attr.colorSecondaryContainer))
+        } else {
+            // Restore default text/tint/image colors for normal songs
+            holder.image?.imageTintList = null
+            holder.image?.background = null
+            holder.loadPaletteImage(song, DEFAULT_SONG_IMAGE)
+        }
+
         // Check if imageContainer exists, so we can have a smooth transition without
         // CardView clipping, if it doesn't exist in current layout set transition name to image instead.
         if (holder.imageContainer != null) {
@@ -91,7 +121,23 @@ open class SongAdapter(
         } else {
             holder.image?.transitionName = song.id.toString()
         }
-        holder.loadPaletteImage(song, DEFAULT_SONG_IMAGE)
+    }
+
+    private var currentSongJob: kotlinx.coroutines.Job? = null
+
+    override fun onAttachedToRecyclerView(recyclerView: RecyclerView) {
+        super.onAttachedToRecyclerView(recyclerView)
+        currentSongJob = activity.lifecycleScope.launch {
+            playerViewModel.currentSongFlow.collect {
+                notifyDataSetChanged()
+            }
+        }
+    }
+
+    override fun onDetachedFromRecyclerView(recyclerView: RecyclerView) {
+        super.onDetachedFromRecyclerView(recyclerView)
+        currentSongJob?.cancel()
+        currentSongJob = null
     }
 
     private fun getSongTitle(song: Song): String {
@@ -141,9 +187,8 @@ open class SongAdapter(
             SortKey.Album -> song.albumName.asSectionName(sortMode)
             SortKey.Artist -> song.displayArtistName().asSectionName(sortMode)
             SortKey.AZ -> song.title.asSectionName(sortMode)
-            SortKey.Year -> ""
             SortKey.FileName -> song.fileName.asSectionName(sortMode)
-            else -> song.title.asSectionName(sortMode)
+            else -> ""
         }
     }
 
@@ -206,6 +251,10 @@ open class SongAdapter(
 
                 override fun onMenuItemClick(item: MenuItem): Boolean {
                     return onSongMenuItemClick(item)
+                }
+
+                override fun setupBottomSheet(dialog: MenuBottomSheetDialogFragment) {
+                    dialog.setSongHeader(song)
                 }
             })
         }

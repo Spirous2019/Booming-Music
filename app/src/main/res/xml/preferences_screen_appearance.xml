@@ -11,21 +11,6 @@
         app:widgetLayout="@layout/preference_general_theme"
         app:key="general_theme"/>
 
-    <SwitchPreferenceCompat
-        app:iconSpaceReserved="true"
-        app:title="@string/material_you_title"
-        app:defaultValue="@bool/md3_supported"
-        app:layout="@layout/list_item_view"
-        app:widgetLayout="@layout/preference_switch"
-        app:key="material_you"/>
-
-    <SwitchPreferenceCompat
-        app:iconSpaceReserved="true"
-        app:title="@string/pure_black_theme_title"
-        app:defaultValue="false"
-        app:layout="@layout/list_item_view"
-        app:widgetLayout="@layout/preference_switch"
-        app:key="black_theme"/>
 
     <SwitchPreferenceCompat
         app:icon="@drawable/ic_text_fields_24dp"

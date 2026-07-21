@@ -131,30 +131,7 @@ class RealArtistRepository(
             songs = allSongs,
             sortMode = AlbumSortMode.ArtistAlbums
         )
-
-        // When songs come from different MediaStore albums that share the same name
-        // (e.g. "Eminem" songs and "50 Cent feat. Eminem" songs both from album "Songs"),
-        // merge them into a single album entry to avoid duplicates on the artist page.
-        val mergedAlbums = if (artistName != null) {
-            rawAlbums.groupBy { it.name.lowercase() }.map { (_, albumsWithSameName) ->
-                if (albumsWithSameName.size == 1) {
-                    albumsWithSameName.first()
-                } else {
-                    // Merge: use the first album's metadata, combine all songs
-                    val primary = albumsWithSameName.first()
-                    val allAlbumSongs = albumsWithSameName.flatMap { it.songs }.distinctBy { it.id }
-                    Album(
-                        id = primary.id,
-                        artistName = primary.artistName,
-                        albumArtistName = primary.albumArtistName,
-                        year = primary.year,
-                        songs = allAlbumSongs
-                    )
-                }
-            }
-        } else {
-            rawAlbums
-        }
+        val mergedAlbums = if (artistName != null) mergeAlbumsByName(rawAlbums) else rawAlbums
 
         return Artist(
             id = artistId,
@@ -281,7 +258,8 @@ class RealArtistRepository(
             val displayName = artistDisplayNames[key]!!
             val artistId = artistIds[key]!!
             val artistAlbums = albumRepository.splitIntoAlbums(songs)
-            val sortedAlbums = with(AlbumSortMode.ArtistAlbums) { artistAlbums.sorted() }
+            val mergedAlbums = mergeAlbumsByName(artistAlbums)
+            val sortedAlbums = with(AlbumSortMode.ArtistAlbums) { mergedAlbums.sorted() }
             Artist(
                 id = artistId,
                 albums = sortedAlbums,
@@ -338,6 +316,29 @@ class RealArtistRepository(
 
     private fun sortArtists(artists: List<Artist>): List<Artist> {
         return with(ArtistSortMode.AllArtists) { artists.sorted() }
+    }
+
+    /**
+     * Merges albums that share the same name into a single album entry.
+     * This prevents duplicate album cards when songs from different MediaStore
+     * album IDs have the same album name (common with multi-artist splits).
+     */
+    private fun mergeAlbumsByName(albums: List<Album>): List<Album> {
+        return albums.groupBy { it.name.lowercase() }.map { (_, albumsWithSameName) ->
+            if (albumsWithSameName.size == 1) {
+                albumsWithSameName.first()
+            } else {
+                val primary = albumsWithSameName.first()
+                val allSongs = albumsWithSameName.flatMap { it.songs }.distinctBy { it.id }
+                Album(
+                    id = primary.id,
+                    artistName = primary.artistName,
+                    albumArtistName = primary.albumArtistName,
+                    year = primary.year,
+                    songs = allSongs
+                )
+            }
+        }
     }
 
     companion object {

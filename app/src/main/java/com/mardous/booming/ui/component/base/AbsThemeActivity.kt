@@ -27,8 +27,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewGroupCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import com.google.android.material.color.DynamicColors
-import com.google.android.material.color.DynamicColorsOptions
 import com.mardous.booming.R
 import com.mardous.booming.extensions.createAppTheme
 import com.mardous.booming.extensions.hasQ
@@ -62,18 +60,11 @@ abstract class AbsThemeActivity : AppCompatActivity() {
     private fun updateTheme() {
         val appTheme = createAppTheme()
         setTheme(appTheme.themeRes)
-        if (appTheme.applyDynamicColors) {
-            val dynamicColorsOptions = DynamicColorsOptions.Builder()
-                .setOnAppliedCallback {
-                    if (appTheme.isBlackTheme) {
-                        setTheme(R.style.BlackThemeOverlay)
-                    }
-                }
-            if (appTheme.seedColor != null) {
-                dynamicColorsOptions.setContentBasedSource(appTheme.seedColor)
-            }
-            DynamicColors.applyToActivityIfAvailable(this, dynamicColorsOptions.build())
+        
+        if (appTheme.isBlackTheme) {
+            setTheme(R.style.BlackThemeOverlay)
         }
+        
         if (Preferences.isCustomFont) {
             setTheme(R.style.CustomFontThemeOverlay)
         }

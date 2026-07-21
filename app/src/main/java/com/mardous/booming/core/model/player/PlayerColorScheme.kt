@@ -116,13 +116,13 @@ data class PlayerColorScheme(
         }
     }
 
-    class AppThemeToken(private val isDark: Boolean, private val isMaterialYou: Boolean) {
+    class AppThemeToken(private val isDark: Boolean) {
         fun isValid(context: Context): Boolean {
-            return context.isNightMode == isDark && Preferences.isMaterialYouTheme == isMaterialYou
+            return context.isNightMode == isDark
         }
 
         companion object {
-            val None = AppThemeToken(isDark = false, isMaterialYou = false)
+            val None = AppThemeToken(isDark = false)
         }
     }
 
@@ -154,8 +154,7 @@ data class PlayerColorScheme(
             return PlayerColorScheme(
                 mode = Mode.AppTheme,
                 appThemeToken = AppThemeToken(
-                    isDark = context.isNightMode,
-                    isMaterialYou = Preferences.isMaterialYouTheme
+                    isDark = context.isNightMode
                 ),
                 blurToken = BlurToken.None,
                 surfaceColor = context.surfaceColor(),

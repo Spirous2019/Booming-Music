@@ -70,8 +70,7 @@ import kotlin.math.roundToInt
 /**
  * @author Christians M. A. (mardous)
  */
-class QueueFragment : BottomSheetDialogFragment(R.layout.fragment_queue),
-    PopupMenu.OnMenuItemClickListener, View.OnClickListener, ISongCallback {
+class QueueFragment : BottomSheetDialogFragment(R.layout.fragment_queue), ISongCallback {
 
     private val playerViewModel: PlayerViewModel by activityViewModel()
     private var _binding: FragmentQueueBinding? = null
@@ -81,7 +80,6 @@ class QueueFragment : BottomSheetDialogFragment(R.layout.fragment_queue),
     private var dragDropManager: RecyclerViewDragDropManager? = null
     private var wrappedAdapter: RecyclerView.Adapter<*>? = null
     private var layoutManager: LinearLayoutManager? = null
-    private var popupMenu: PopupMenu? = null
 
     private val playlist: List<Song>
         get() = playerViewModel.queue
@@ -127,41 +125,15 @@ class QueueFragment : BottomSheetDialogFragment(R.layout.fragment_queue),
         }
 
         layoutManager = LinearLayoutManager(requireContext())
-        popupMenu = newPopupMenu(binding.currentItem.menu, R.menu.menu_playing_queue)
-        popupMenu!!.setForceShowIcon(true)
-        popupMenu!!.setOnMenuItemClickListener(this)
-
-        binding.currentItem.dragView.setOnClickListener(this)
-        binding.currentItem.menu.setOnClickListener(this)
-        binding.currentItem.root.setOnClickListener(this)
         binding.recyclerView.layoutManager = layoutManager
         binding.recyclerView.adapter = wrappedAdapter
         binding.recyclerView.itemAnimator = RefactoredDefaultItemAnimator()
 
         dragDropManager!!.attachRecyclerView(_binding!!.recyclerView)
-        layoutManager!!.scrollToPosition(position.next)
+        layoutManager!!.scrollToPosition(position.current)
 
         binding.recyclerView.createFastScroller()
 
-        viewLifecycleOwner.launchAndRepeatWithViewLifecycle {
-            playerViewModel.isPlayingFlow.collect { isPlaying ->
-                val style = if (Preferences.adaptiveControls) {
-                    Preferences.nowPlayingScreen.buttonStyle
-                } else {
-                    NowPlayingButtonStyle.Normal
-                }
-                binding.currentItem.dragView.setImageResource(
-                    if (isPlaying) style.pause else style.play
-                )
-            }
-        }
-        viewLifecycleOwner.launchAndRepeatWithViewLifecycle {
-            playerViewModel.currentSongFlow.collect { song ->
-                binding.currentItem.title.text = song.title
-                binding.currentItem.text.text = song.songInfo()
-                binding.currentItem.image.songImage(song)
-            }
-        }
         viewLifecycleOwner.launchAndRepeatWithViewLifecycle {
             combine(playerViewModel.queueFlow, playerViewModel.positionFlow) { queue, position ->
                 Pair(queue, position)
@@ -198,61 +170,6 @@ class QueueFragment : BottomSheetDialogFragment(R.layout.fragment_queue),
         }
     }
 
-    override fun onClick(view: View) {
-        when (view) {
-            binding.currentItem.menu -> popupMenu?.show()
-            binding.currentItem.dragView -> playerViewModel.togglePlayPause()
-            binding.currentItem.root -> syncListPosition()
-        }
-    }
-
-    @SuppressLint("NotifyDataSetChanged")
-    override fun onMenuItemClick(item: MenuItem): Boolean {
-        return when (item.itemId) {
-            R.id.action_remove_from_playing_queue -> {
-                playerViewModel.removePosition(position.current)
-                true
-            }
-
-            R.id.action_stop_after_track -> {
-                playerViewModel.stopAt(position.current).observe(viewLifecycleOwner) { (title, canceled) ->
-                    title?.let {
-                        if (canceled)
-                            showToast(getString(R.string.sleep_timer_stop_after_x_canceled, it))
-                        else showToast(getString(R.string.sleep_timer_stop_after_x, it))
-                    }
-                }
-                true
-            }
-
-            R.id.action_add_to_playlist -> {
-                AddToPlaylistDialog.create(playlist)
-                    .show(childFragmentManager, "CREATE_PLAYLIST")
-                true
-            }
-
-            R.id.action_clear_playing_queue -> {
-                playerViewModel.clearQueue()
-                true
-            }
-
-            R.id.action_lock -> {
-                Preferences.isQueueLocked = !Preferences.isQueueLocked
-                if (Preferences.isQueueLocked) {
-                    item.icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_lock_24dp)
-                    showToast(ContextCompat.getString(requireContext(), R.string.queue_locked))
-                }else {
-                    item.icon = ContextCompat.getDrawable(requireContext(), R.drawable.ic_lock_open_24dp)
-                    showToast(ContextCompat.getString(requireContext(), R.string.queue_unlocked))
-                }
-                playingQueueAdapter?.notifyDataSetChanged()
-                true
-            }
-
-            else -> false
-        }
-    }
-
     override fun songMenuItemClick(
         song: Song,
         menuItem: MenuItem,
@@ -265,7 +182,7 @@ class QueueFragment : BottomSheetDialogFragment(R.layout.fragment_queue),
 
     private fun syncListPosition() {
         binding.recyclerView.stopScroll()
-        layoutManager?.scrollToPositionWithOffset(position.next, -(binding.recyclerView.paddingTop / 2))
+        layoutManager?.scrollToPositionWithOffset(position.current, 0)
     }
 
     override fun onPause() {

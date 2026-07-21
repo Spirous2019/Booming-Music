@@ -37,7 +37,6 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import coil3.SingletonImageLoader
-import com.google.android.material.color.DynamicColors
 import com.mardous.booming.BuildConfig
 import com.mardous.booming.R
 import com.mardous.booming.coil.CoverProvider
@@ -91,7 +90,6 @@ import com.mardous.booming.util.LASTFM_LOGIN
 import com.mardous.booming.util.LAST_ADDED_CUTOFF
 import com.mardous.booming.util.LIBRARY_CATEGORIES
 import com.mardous.booming.util.LISTENBRAINZ_LOGIN
-import com.mardous.booming.util.MATERIAL_YOU
 import com.mardous.booming.util.NOW_PLAYING_EXTRA_INFO
 import com.mardous.booming.util.NOW_PLAYING_SCREEN
 import com.mardous.booming.util.ON_CLEAR_QUEUE_ACTION
@@ -244,18 +242,6 @@ open class PreferenceScreenFragment : PreferenceFragmentCompat(),
                 val themeName = Preferences.getGeneralTheme((newValue as Boolean))
                 setDefaultNightMode(Preferences.getDayNightMode(themeName))
                 requireActivity().recreate()
-                true
-            }
-        }
-
-        findPreference<Preference>(MATERIAL_YOU)?.apply {
-            isVisible = hasS()
-            setOnPreferenceChangeListener { _, newValue ->
-                val activity = requireActivity()
-                if (newValue as Boolean) {
-                    DynamicColors.applyToActivityIfAvailable(activity)
-                }
-                activity.recreate()
                 true
             }
         }
