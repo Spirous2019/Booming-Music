@@ -59,6 +59,7 @@
     <string name="close_action">Close</string>
     <string name="continue_action">Continue</string>
     <string name="select_all_title">Select all</string>
+    <string name="deselect_all_title">Deselect all</string>
     <string name="x_selected">%d selected</string>
     <string name="preparing_playback_title">Preparing</string>
     <string name="restoring_playback_state">Restoring playback state and queue…</string>
@@ -198,6 +199,12 @@
     <string name="various_artists">Various Artists</string>
     <string name="unknown_artist">Unknown Artist</string>
     <string name="unknown_genre">Unknown Genre</string>
+    <string name="show_album_artists">Only album artists</string>
+    <string name="sort_by_label">Sort by</string>
+    <string name="descending_label">Descending</string>
+    <string name="layout_grid_label">Layout &amp; Grid</string>
+    <string name="grid_size_label">Grid size</string>
+    <string name="view_type_label">View type</string>
     <string name="unknown_year">Unknown Year</string>
     <string name="no_songs_label">No songs</string>
     <string name="no_albums_label">No albums</string>
@@ -206,13 +213,20 @@
     <string name="no_playlists_label">No playlists</string>
     <string name="empty_label">Empty</string>
     <string name="nothing_to_see">Nothing to see</string>
-    <string name="show_album_artists">Only album artists</string>
+    <string name="only_album_artists">Only album artists</string>
+    <string name="song_label">Song</string>
     <string name="songs_label">Songs</string>
+    <string name="album_label">Album</string>
     <string name="albums_label">Albums</string>
+    <string name="artist_label">Artist</string>
     <string name="artists_label">Artists</string>
     <string name="album_artists_label">Album artists</string>
+    <string name="genre_label">Genre</string>
     <string name="genres_label">Genres</string>
+    <string name="folder_label">Folder</string>
     <string name="folders_label">Folders</string>
+    <string name="year_label">Year</string>
+    <string name="years_label">Years</string>
     <string name="playlists_label">Playlists</string>
     <string name="playlist_label">Playlist</string>
     <string name="favorites_label">Favorites</string>
@@ -1006,4 +1020,14 @@
     <string name="uncaught_error_restart_app">Restart app</string>
     <string name="uncaught_error_github">Open issue on GitHub</string>
     <string name="uncaught_error_send">Send report</string>
+
+    <string name="change_artist_image_title">Change artist image</string>
+    <string name="choose_from_device">Choose from device</string>
+    <string name="remove_image_title">Remove image</string>
+    <string name="search_artist_images_hint">Search artist images…</string>
+    <string name="searching_images">Searching images…</string>
+    <string name="no_images_found">No images found</string>
+    <string name="artist_portraits_label">Artist portraits</string>
+    <string name="album_covers_label">Album covers</string>
 </resources>
+

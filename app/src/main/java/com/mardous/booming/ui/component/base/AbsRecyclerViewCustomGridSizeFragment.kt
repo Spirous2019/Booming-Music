@@ -18,15 +18,16 @@
 package com.mardous.booming.ui.component.base
 
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuInflater
-import android.view.MenuItem
 import android.view.View
 import androidx.annotation.LayoutRes
 import androidx.recyclerview.widget.RecyclerView
 import com.mardous.booming.R
 import com.mardous.booming.core.model.GridViewType
 import com.mardous.booming.extensions.isLandscape
+
+import androidx.core.view.isVisible
+import com.google.android.material.button.MaterialButton
+import com.mardous.booming.ui.dialogs.LayoutViewBottomSheetDialogFragment
 
 abstract class AbsRecyclerViewCustomGridSizeFragment<Adt : RecyclerView.Adapter<*>, LM : RecyclerView.LayoutManager> :
     AbsRecyclerViewFragment<Adt, LM>() {
@@ -36,7 +37,6 @@ abstract class AbsRecyclerViewCustomGridSizeFragment<Adt : RecyclerView.Adapter<
         set(newGridSize) {
             val oldLayoutRes = itemLayoutRes
             saveGridSize(newGridSize)
-            // only recreate the adapter and layout manager if the layout currentLayoutRes has changed
             if (oldLayoutRes != itemLayoutRes) {
                 invalidateLayoutManager()
                 invalidateAdapter()
@@ -96,31 +96,42 @@ abstract class AbsRecyclerViewCustomGridSizeFragment<Adt : RecyclerView.Adapter<
         applyRecyclerViewPaddingForLayoutRes(recyclerView, currentLayoutRes)
     }
 
-    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateMenu(menu, inflater)
-        menu.findItem(R.id.action_view_type).run {
-            this.isEnabled = isGridMode
-            this.subMenu?.findItem(viewType.itemId)?.isChecked = true
-        }
-        menu.findItem(R.id.action_grid_size).run {
-            if (resources.isLandscape) {
-                this.setTitle(R.string.action_grid_size_land)
-            }
-            this.subMenu?.let { setUpGridSizeMenu(it) }
-        }
+    override fun showViewTypeInBottomSheet(): Boolean = true
+    override fun selectedViewType(): GridViewType = viewType
+    override fun onViewTypeChanged(viewType: GridViewType) {
+        this.viewType = viewType
     }
 
-    override fun onMenuItemSelected(item: MenuItem): Boolean {
-        val selectedViewType = GridViewType.entries.firstOrNull { type -> type.itemId == item.itemId }
-        if (selectedViewType != null) {
-            item.isChecked = !item.isChecked
-            this.viewType = selectedViewType
-            return true
+    protected open val showLayoutButtonInSubHeader: Boolean = true
+
+    override fun setupSubHeader() {
+        super.setupSubHeader()
+        val layoutBtn = _binding?.appBarLayout?.findViewById<MaterialButton>(R.id.header_layout_button)
+        if (showLayoutButtonInSubHeader) {
+            layoutBtn?.isVisible = true
+            layoutBtn?.setOnClickListener {
+                val dialog = LayoutViewBottomSheetDialogFragment().apply {
+                    this.currentGridSize = this@AbsRecyclerViewCustomGridSizeFragment.gridSize
+                    this.maxGridSize = this@AbsRecyclerViewCustomGridSizeFragment.maxGridSize
+                    this.onGridSizeSelected = { newGrid ->
+                        this@AbsRecyclerViewCustomGridSizeFragment.gridSize = newGrid
+                    }
+                    this.showViewType = this@AbsRecyclerViewCustomGridSizeFragment.showViewTypeInBottomSheet()
+                    this.selectedViewType = this@AbsRecyclerViewCustomGridSizeFragment.selectedViewType()
+                    this.onViewTypeChanged = { viewType ->
+                        this@AbsRecyclerViewCustomGridSizeFragment.onViewTypeChanged(viewType)
+                    }
+                    this.showOnlyAlbumArtists = this@AbsRecyclerViewCustomGridSizeFragment.showOnlyAlbumArtistsInBottomSheet()
+                    this.isOnlyAlbumArtists = this@AbsRecyclerViewCustomGridSizeFragment.isOnlyAlbumArtists()
+                    this.onOnlyAlbumArtistsChanged = { enabled ->
+                        this@AbsRecyclerViewCustomGridSizeFragment.onOnlyAlbumArtistsChanged(enabled)
+                    }
+                }
+                dialog.show(childFragmentManager, "LAYOUT_VIEW_BOTTOM_SHEET")
+            }
+        } else {
+            layoutBtn?.isVisible = false
         }
-        if (handleGridSizeMenuItem(item)) {
-            return true
-        }
-        return super.onMenuItemSelected(item)
     }
 
     protected abstract fun getSavedViewType(): GridViewType
@@ -128,59 +139,4 @@ abstract class AbsRecyclerViewCustomGridSizeFragment<Adt : RecyclerView.Adapter<
     protected abstract fun getSavedGridSize(): Int
     protected abstract fun saveGridSize(newGridSize: Int)
     protected abstract fun onGridSizeChanged(isLand: Boolean, gridColumns: Int)
-
-    private fun setUpGridSizeMenu(gridSizeMenu: Menu) {
-        when (this.gridSize) {
-            1 -> gridSizeMenu.findItem(R.id.action_grid_size_1).isChecked = true
-            2 -> gridSizeMenu.findItem(R.id.action_grid_size_2).isChecked = true
-            3 -> gridSizeMenu.findItem(R.id.action_grid_size_3).isChecked = true
-            4 -> gridSizeMenu.findItem(R.id.action_grid_size_4).isChecked = true
-            5 -> gridSizeMenu.findItem(R.id.action_grid_size_5).isChecked = true
-            6 -> gridSizeMenu.findItem(R.id.action_grid_size_6).isChecked = true
-            7 -> gridSizeMenu.findItem(R.id.action_grid_size_7).isChecked = true
-            8 -> gridSizeMenu.findItem(R.id.action_grid_size_8).isChecked = true
-        }
-        val maxGridSize = this.maxGridSize
-        if (maxGridSize < 8) {
-            gridSizeMenu.findItem(R.id.action_grid_size_8).isVisible = false
-        }
-        if (maxGridSize < 7) {
-            gridSizeMenu.findItem(R.id.action_grid_size_7).isVisible = false
-        }
-        if (maxGridSize < 6) {
-            gridSizeMenu.findItem(R.id.action_grid_size_6).isVisible = false
-        }
-        if (maxGridSize < 5) {
-            gridSizeMenu.findItem(R.id.action_grid_size_5).isVisible = false
-        }
-        if (maxGridSize < 4) {
-            gridSizeMenu.findItem(R.id.action_grid_size_4).isVisible = false
-        }
-        if (maxGridSize < 3) {
-            gridSizeMenu.findItem(R.id.action_grid_size_3).isVisible = false
-        }
-    }
-
-    private fun handleGridSizeMenuItem(item: MenuItem): Boolean {
-        var gridSize = 0
-        when (item.itemId) {
-            R.id.action_grid_size_1 -> gridSize = 1
-            R.id.action_grid_size_2 -> gridSize = 2
-            R.id.action_grid_size_3 -> gridSize = 3
-            R.id.action_grid_size_4 -> gridSize = 4
-            R.id.action_grid_size_5 -> gridSize = 5
-            R.id.action_grid_size_6 -> gridSize = 6
-            R.id.action_grid_size_7 -> gridSize = 7
-            R.id.action_grid_size_8 -> gridSize = 8
-        }
-        if (gridSize > 0) {
-            item.isChecked = true
-            this.gridSize = gridSize
-            this.toolbar.menu
-                .findItem(R.id.action_view_type)
-                ?.isEnabled = this.isGridMode
-            return true
-        }
-        return false
-    }
 }

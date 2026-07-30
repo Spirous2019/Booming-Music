@@ -62,6 +62,16 @@ data class DeezerAlbum(
         @SerialName("cover_medium")
         val mediumImage: String?,
         @SerialName("cover_big")
-        val largeImage: String?
+        val largeImage: String?,
+        @SerialName("cover_xl")
+        val xlImage: String? = null,
+        @SerialName("artist")
+        val artist: AlbumArtist? = null
+    )
+
+    @Serializable
+    data class AlbumArtist(
+        @SerialName("name")
+        val name: String
     )
 }

@@ -27,6 +27,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.mardous.booming.R
 import com.mardous.booming.core.model.GridViewType
 import com.mardous.booming.core.sort.SongSortMode
+import com.mardous.booming.core.sort.SortMode
 import com.mardous.booming.data.model.Song
 import com.mardous.booming.ui.ISongCallback
 import com.mardous.booming.ui.adapters.song.SongAdapter
@@ -49,10 +50,22 @@ class SongListFragment : AbsRecyclerViewCustomGridSizeFragment<SongAdapter, Grid
         get() = if (isLandscape) resources.getInteger(R.integer.default_list_columns_land)
         else resources.getInteger(R.integer.default_list_columns)
 
+    override fun getSortMode(): SortMode = SongSortMode.AllSongs
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         libraryViewModel.getSongs().observe(viewLifecycleOwner) { songs ->
-            adapter?.dataSet = songs
+            val sortedSongs = with(SongSortMode.AllSongs) { songs.sorted() }
+            adapter?.dataSet = sortedSongs
+            setSubHeaderItemCount(sortedSongs.size, R.string.song_label, R.string.songs_label)
+        }
+    }
+
+    override fun onSortModeChanged() {
+        libraryViewModel.getSongs().value?.let { songs ->
+            val sortedSongs = with(SongSortMode.AllSongs) { songs.sorted() }
+            adapter?.dataSet = sortedSongs
+            setSubHeaderItemCount(sortedSongs.size, R.string.song_label, R.string.songs_label)
         }
     }
 
@@ -124,18 +137,8 @@ class SongListFragment : AbsRecyclerViewCustomGridSizeFragment<SongAdapter, Grid
         adapter?.notifyDataSetChanged()
     }
 
-    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateMenu(menu, inflater)
-        SongSortMode.AllSongs.createMenu(menu)
-    }
-
-    override fun onMenuItemSelected(item: MenuItem): Boolean {
-        if (SongSortMode.AllSongs.sortItemSelected(item)) {
-            libraryViewModel.forceReload(ReloadType.Songs)
-            return true
-        }
-        return super.onMenuItemSelected(item)
-    }
+    override fun showViewTypeInBottomSheet(): Boolean = false
+    override val showLayoutButtonInSubHeader: Boolean = false
 
     override fun onMediaContentChanged() {
         super.onMediaContentChanged()

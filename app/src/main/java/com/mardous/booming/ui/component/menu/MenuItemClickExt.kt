@@ -264,6 +264,12 @@ fun Artist.onArtistMenu(fragment: Fragment, menuItem: MenuItem): Boolean {
             true
         }
 
+        R.id.action_change_artist_image -> {
+            com.mardous.booming.ui.dialogs.artists.ArtistImagePickerDialogFragment.newInstance(this)
+                .show(fragment.childFragmentManager, com.mardous.booming.ui.dialogs.artists.ArtistImagePickerDialogFragment.TAG)
+            true
+        }
+
         else -> songs.onSongsMenu(fragment, menuItem)
     }
 }

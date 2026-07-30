@@ -86,7 +86,7 @@ class RealArtistRepository(
             )
             if (directSongs.isNotEmpty()) {
                 val splitNames = ArtistNameSplitter.split(directSongs.first().artistName)
-                if (splitNames.size == 1) splitNames.first() else null
+                splitNames.firstOrNull()
             } else null
         }
 

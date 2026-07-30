@@ -71,6 +71,7 @@
             app:itemGravity="center"
             app:itemIconGravity="@integer/bottomNavViewItemIconGravity"
             app:itemHorizontalTranslationEnabled="false"
+            app:itemRippleColor="?attr/colorPrimary"
             app:menu="@menu/menu_bottom_navigation"
             tools:viewBindingType="com.google.android.material.navigation.NavigationBarView"/>
 

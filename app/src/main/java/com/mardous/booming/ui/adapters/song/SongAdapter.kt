@@ -62,6 +62,11 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.RecyclerView
 import kotlinx.coroutines.launch
 
+import com.mardous.booming.data.local.repository.LyricsRepository
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import org.koin.java.KoinJavaComponent.get
+
 @SuppressLint("NotifyDataSetChanged")
 @Suppress("LeakingThis")
 open class SongAdapter(
@@ -72,10 +77,19 @@ open class SongAdapter(
     protected val callback: ISongCallback? = null,
 ) : AbsMultiSelectAdapter<SongAdapter.ViewHolder, Song>(activity, R.menu.menu_media_selection), PopupTextProvider {
 
+    protected val lyricsRepository: LyricsRepository by lazy {
+        get(LyricsRepository::class.java)
+    }
+
     open var dataSet: List<Song> = dataSet
         set(value) {
             field = value
             notifyDataSetChanged()
+            if (value.isNotEmpty()) {
+                activity.lifecycleScope.launch(Dispatchers.IO) {
+                    lyricsRepository.prefetchLyricsAvailability(value)
+                }
+            }
         }
 
     protected val playerViewModel: PlayerViewModel by lazy {
@@ -103,6 +117,24 @@ open class SongAdapter(
 
         holder.title?.setTextColor(activity.resolveColor(android.R.attr.textColorPrimary))
         holder.text?.setTextColor(activity.resolveColor(android.R.attr.textColorSecondary))
+
+        val cachedLyricsStatus = lyricsRepository.hasLyricsCached(song.id)
+        if (cachedLyricsStatus != null) {
+            holder.lyricsBadge?.isVisible = cachedLyricsStatus
+        } else {
+            holder.lyricsBadge?.isVisible = false
+            activity.lifecycleScope.launch(Dispatchers.IO) {
+                val hasLyrics = lyricsRepository.checkLyricsAvailability(song)
+                if (hasLyrics) {
+                    withContext(Dispatchers.Main) {
+                        if (holder.bindingAdapterPosition != RecyclerView.NO_POSITION &&
+                            dataSet.getOrNull(holder.bindingAdapterPosition)?.id == song.id) {
+                            holder.lyricsBadge?.isVisible = true
+                        }
+                    }
+                }
+            }
+        }
 
         if (isCurrentPlaying) {
             // Cancel any pending Coil requests for this ImageView first!
@@ -266,6 +298,11 @@ open class SongAdapter(
 
     init {
         setHasStableIds(true)
+        if (dataSet.isNotEmpty()) {
+            activity.lifecycleScope.launch(Dispatchers.IO) {
+                lyricsRepository.prefetchLyricsAvailability(dataSet)
+            }
+        }
     }
 
 }

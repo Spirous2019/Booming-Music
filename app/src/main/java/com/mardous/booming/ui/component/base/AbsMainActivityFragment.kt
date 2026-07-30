@@ -99,8 +99,9 @@ abstract class AbsMainActivityFragment @JvmOverloads constructor(@LayoutRes layo
 
     protected fun checkForMargins(view: View) {
         if (mainActivity.isBottomNavVisible) {
-            view.updateLayoutParams<ViewGroup.MarginLayoutParams> {
-                bottomMargin = dip(R.dimen.bottom_nav_height)
+            (view.layoutParams as? ViewGroup.MarginLayoutParams)?.let { params ->
+                params.bottomMargin = dip(R.dimen.bottom_nav_height)
+                view.layoutParams = params
             }
         }
     }

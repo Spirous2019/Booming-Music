@@ -17,6 +17,7 @@
             android:layout_width="wrap_content"
             android:layout_height="match_parent"
             app:itemHorizontalTranslationEnabled="false"
+            app:itemRippleColor="?attr/colorPrimary"
             app:menu="@menu/menu_bottom_navigation"
             tools:viewBindingType="com.google.android.material.navigation.NavigationBarView" />
 

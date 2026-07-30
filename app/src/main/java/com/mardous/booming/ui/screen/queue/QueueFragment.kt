@@ -109,6 +109,7 @@ class QueueFragment : BottomSheetDialogFragment(R.layout.fragment_queue), ISongC
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentQueueBinding.bind(view)
+        binding.recyclerView.isNestedScrollingEnabled = true
         binding.recyclerView.applyBottomWindowInsets(
             addedSpace = Space.bottom(8.dp(view.context))
         )

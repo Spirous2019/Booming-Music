@@ -146,6 +146,7 @@ interface Repository {
     suspend fun deezerTrack(artist: String, title: String): DeezerTrack?
     suspend fun deezerArtist(name: String, limit: Int, index: Int): DeezerArtist?
     suspend fun deezerAlbum(artist: String, name: String): DeezerAlbum?
+    suspend fun deezerAlbumsByArtist(artistName: String, limit: Int = 25): DeezerAlbum?
     suspend fun artistInfo(name: String, lang: String?, cache: String?): LastFmArtist?
     suspend fun albumInfo(artist: String, album: String, lang: String?): LastFmAlbum?
     suspend fun contributors(): List<Contribution>
@@ -458,6 +459,9 @@ class RealRepository(
 
     override suspend fun deezerAlbum(artist: String, name: String) =
         networkRepository.deezerAlbum(artist, name)
+
+    override suspend fun deezerAlbumsByArtist(artistName: String, limit: Int) =
+        networkRepository.deezerAlbumsByArtist(artistName, limit)
 
     override suspend fun artistInfo(name: String, lang: String?, cache: String?) =
         networkRepository.artistInfo(name, lang, cache)

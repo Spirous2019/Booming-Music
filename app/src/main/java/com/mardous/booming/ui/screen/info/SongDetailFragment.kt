@@ -59,6 +59,9 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.navigation.fragment.navArgs
+import android.app.Dialog
+import com.google.android.material.bottomsheet.BottomSheetBehavior
+import com.google.android.material.bottomsheet.BottomSheetDialog
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.mardous.booming.R
 import com.mardous.booming.data.local.EditTarget
@@ -91,6 +94,16 @@ class SongDetailFragment : BottomSheetDialogFragment() {
 
     private val song: Song
         get() = navArgs.extraSong
+
+    override fun onCreateDialog(savedInstanceState: Bundle?): Dialog {
+        val dialog = super.onCreateDialog(savedInstanceState)
+        (dialog as? BottomSheetDialog)?.let {
+            it.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            it.behavior.skipCollapsed = true
+            it.behavior.isFitToContents = true
+        }
+        return dialog
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater,

@@ -53,6 +53,7 @@ interface NetworkRepository {
     suspend fun deezerTrack(artist: String, title: String): DeezerTrack?
     suspend fun deezerArtist(name: String, limit: Int, index: Int): DeezerArtist?
     suspend fun deezerAlbum(artist: String, name: String): DeezerAlbum?
+    suspend fun deezerAlbumsByArtist(artistName: String, limit: Int = 25): DeezerAlbum?
 }
 
 class NetworkRepositoryImpl(
@@ -177,6 +178,15 @@ class NetworkRepositoryImpl(
             deezerService.album(artist, name)
         } catch (e: Exception) {
             Log.e(TAG, "Deezer: album info couldn't be retrieved!", e)
+            null
+        }
+    }
+
+    override suspend fun deezerAlbumsByArtist(artistName: String, limit: Int): DeezerAlbum? {
+        return try {
+            deezerService.albumsByArtist(artistName, limit)
+        } catch (e: Exception) {
+            Log.e(TAG, "Deezer: albums by artist couldn't be retrieved!", e)
             null
         }
     }

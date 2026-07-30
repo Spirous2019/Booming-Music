@@ -123,6 +123,7 @@ class AlbumDetailFragment : AbsMainActivityFragment(R.layout.fragment_album_deta
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentAlbumDetailBinding.bind(view)
         setSupportActionBar(binding.toolbar, "")
+        setupToolbarOverflowMenu()
         materialSharedAxis(view, prepareTransition = false)
 
         view.applyHorizontalWindowInsets()
@@ -220,16 +221,8 @@ class AlbumDetailFragment : AbsMainActivityFragment(R.layout.fragment_album_deta
     }
 
     private fun createSortOrderMenu(view: View, sortMode: SortMode, onChanged: () -> Unit) {
-        val popupMenu = PopupMenu(view.context, view).apply {
-            sortMode.createMenu(menu, hasSubMenu = false)
-            setOnMenuItemClickListener { item ->
-                if (sortMode.sortItemSelected(item)) {
-                    onChanged()
-                    true
-                } else false
-            }
-        }
-        popupMenu.show()
+        val sheet = com.mardous.booming.ui.dialogs.SortBottomSheetDialogFragment.newInstance(sortMode, onChanged)
+        sheet.show(childFragmentManager, com.mardous.booming.ui.dialogs.SortBottomSheetDialogFragment.TAG)
     }
 
     private fun showAlbum(album: Album) {
@@ -338,14 +331,10 @@ class AlbumDetailFragment : AbsMainActivityFragment(R.layout.fragment_album_deta
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-        menuInflater.inflate(R.menu.menu_album_detail, menu)
+        menuInflater.inflate(R.menu.menu_album_detail_toolbar, menu)
         if (!isLandscape()) {
             menu.removeItem(R.id.action_search)
         }
-        menu.findItem(R.id.action_toggle_compact_song_view)
-            ?.isChecked = Preferences.compactAlbumSongView
-        menu.findItem(R.id.action_show_album_duration)
-            ?.isChecked = Preferences.showAlbumDuration
     }
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
@@ -357,6 +346,11 @@ class AlbumDetailFragment : AbsMainActivityFragment(R.layout.fragment_album_deta
 
             R.id.action_search -> {
                 goToSearch()
+                true
+            }
+
+            R.id.action_more_options -> {
+                showToolbarMenuBottomSheet()
                 true
             }
 
@@ -425,5 +419,33 @@ class AlbumDetailFragment : AbsMainActivityFragment(R.layout.fragment_album_deta
         binding.recyclerView.adapter = null
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun setupToolbarOverflowMenu() {
+        binding.toolbar.post {
+            val overflowButton = binding.toolbar.findViewById<View>(androidx.appcompat.R.id.action_menu_presenter)
+            overflowButton?.setOnClickListener {
+                showToolbarMenuBottomSheet()
+            }
+        }
+    }
+
+    private fun showToolbarMenuBottomSheet() {
+        val popup = androidx.appcompat.widget.PopupMenu(requireContext(), binding.toolbar)
+        requireActivity().menuInflater.inflate(R.menu.menu_album_detail, popup.menu)
+        if (!isLandscape()) {
+            popup.menu.removeItem(R.id.action_search)
+        }
+        popup.menu.findItem(R.id.action_toggle_compact_song_view)?.isChecked = Preferences.compactAlbumSongView
+        popup.menu.findItem(R.id.action_show_album_duration)?.isChecked = Preferences.showAlbumDuration
+
+        com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment()
+            .setMenu(popup.menu) { itemId ->
+                val item = popup.menu.findItem(itemId)
+                if (item != null) {
+                    onMenuItemSelected(item)
+                }
+            }
+            .show(childFragmentManager, com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment.TAG)
     }
 }

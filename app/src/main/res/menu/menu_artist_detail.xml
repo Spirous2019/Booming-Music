@@ -24,6 +24,10 @@
         android:id="@+id/action_tag_editor"
         android:title="@string/action_tag_editor"/>
     <item
+        android:id="@+id/action_change_artist_image"
+        android:icon="@drawable/ic_image_24dp"
+        android:title="@string/change_artist_image_title"/>
+    <item
         android:id="@+id/action_play_info"
         android:title="@string/play_info"/>
     <item

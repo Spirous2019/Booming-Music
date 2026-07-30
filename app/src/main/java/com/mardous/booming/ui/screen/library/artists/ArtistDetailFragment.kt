@@ -128,6 +128,7 @@ class ArtistDetailFragment : AbsMainActivityFragment(R.layout.fragment_artist_de
         super.onViewCreated(view, savedInstanceState)
         _binding = FragmentArtistDetailBinding.bind(view)
         setSupportActionBar(binding.toolbar, "")
+        setupToolbarOverflowMenu()
         materialSharedAxis(view, prepareTransition = false)
 
         view.applyHorizontalWindowInsets()
@@ -271,16 +272,10 @@ class ArtistDetailFragment : AbsMainActivityFragment(R.layout.fragment_artist_de
     }
 
     private fun createSortOrderMenu(view: View, sortMode: SortMode) {
-        val popupMenu = PopupMenu(view.context, view).apply {
-            sortMode.createMenu(menu, hasSubMenu = false)
-            setOnMenuItemClickListener { item ->
-                if (sortMode.sortItemSelected(item)) {
-                    detailViewModel.loadArtistDetail()
-                    true
-                } else false
-            }
+        val sheet = com.mardous.booming.ui.dialogs.SortBottomSheetDialogFragment.newInstance(sortMode) {
+            detailViewModel.loadArtistDetail()
         }
-        popupMenu.show()
+        sheet.show(childFragmentManager, com.mardous.booming.ui.dialogs.SortBottomSheetDialogFragment.TAG)
     }
 
     private fun showArtist(artist: Artist) {
@@ -418,13 +413,10 @@ class ArtistDetailFragment : AbsMainActivityFragment(R.layout.fragment_artist_de
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-        menuInflater.inflate(R.menu.menu_artist_detail, menu)
+        menuInflater.inflate(R.menu.menu_artist_detail_toolbar, menu)
         if (!isLandscape()) {
             menu.removeItem(R.id.action_search)
         }
-        menu.findItem(R.id.action_horizontal_albums)?.isChecked = Preferences.horizontalArtistAlbums
-        menu.findItem(R.id.action_ignore_singles)?.isChecked = Preferences.ignoreSingles
-        menu.findItem(R.id.action_toggle_compact_song_view)?.isChecked = Preferences.compactArtistSongView
     }
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
@@ -436,6 +428,17 @@ class ArtistDetailFragment : AbsMainActivityFragment(R.layout.fragment_artist_de
 
             R.id.action_search -> {
                 goToSearch()
+                true
+            }
+
+            R.id.action_more_options -> {
+                showToolbarMenuBottomSheet()
+                true
+            }
+
+            R.id.action_change_artist_image -> {
+                com.mardous.booming.ui.dialogs.artists.ArtistImagePickerDialogFragment.newInstance(getArtist())
+                    .show(childFragmentManager, com.mardous.booming.ui.dialogs.artists.ArtistImagePickerDialogFragment.TAG)
                 true
             }
 
@@ -492,5 +495,34 @@ class ArtistDetailFragment : AbsMainActivityFragment(R.layout.fragment_artist_de
         binding.recyclerView.adapter = null
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun setupToolbarOverflowMenu() {
+        binding.toolbar.post {
+            val overflowButton = binding.toolbar.findViewById<View>(androidx.appcompat.R.id.action_menu_presenter)
+            overflowButton?.setOnClickListener {
+                showToolbarMenuBottomSheet()
+            }
+        }
+    }
+
+    private fun showToolbarMenuBottomSheet() {
+        val popup = androidx.appcompat.widget.PopupMenu(requireContext(), binding.toolbar)
+        requireActivity().menuInflater.inflate(R.menu.menu_artist_detail, popup.menu)
+        if (!isLandscape()) {
+            popup.menu.removeItem(R.id.action_search)
+        }
+        popup.menu.findItem(R.id.action_horizontal_albums)?.isChecked = Preferences.horizontalArtistAlbums
+        popup.menu.findItem(R.id.action_ignore_singles)?.isChecked = Preferences.ignoreSingles
+        popup.menu.findItem(R.id.action_toggle_compact_song_view)?.isChecked = Preferences.compactArtistSongView
+
+        com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment()
+            .setMenu(popup.menu) { itemId ->
+                val item = popup.menu.findItem(itemId)
+                if (item != null) {
+                    onMenuItemSelected(item)
+                }
+            }
+            .show(childFragmentManager, com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment.TAG)
     }
 }

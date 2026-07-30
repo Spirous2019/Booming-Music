@@ -33,17 +33,20 @@ sealed class SortMode(
     val ignoreArticles: Boolean
         get() =  get<SharedPreferences>().getBoolean("ignore_articles_when_sorting", false)
 
+    val keys: List<KeySortItem>
+        get() = items.filterIsInstance<KeySortItem>()
+
     private val key = "${id}_sort_order"
     open var selectedKey: SortKey
         get() = get<SharedPreferences>().getSortKey(key, defaults.first)
-        protected set(newKey) {
+        set(newKey) {
             get<SharedPreferences>().edit { putString(key, newKey.value) }
         }
 
     private val descending = "${id}_descending"
     open var selectedDescending: Boolean
         get() = get<SharedPreferences>().getBoolean(descending, defaults.second)
-        protected set(newDescending) {
+        set(newDescending) {
             get<SharedPreferences>().edit { putBoolean(descending, newDescending) }
         }
 

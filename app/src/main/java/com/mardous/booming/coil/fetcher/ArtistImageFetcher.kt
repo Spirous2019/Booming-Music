@@ -42,6 +42,10 @@ class ArtistImageFetcher(
         get() = options.context.contentResolver
 
     override suspend fun fetch(): FetchResult? {
+        if (customImageManager.isNoImage(image)) {
+            return null
+        }
+
         if (customImageManager.hasCustomImage(image)) {
             val imageFile = customImageManager.getCustomImageFile(image)
             if (imageFile?.isFile == true) {
@@ -54,41 +58,46 @@ class ArtistImageFetcher(
         }
 
         if (!image.isNameUnknown && NetworkFeature.Images.Artists.isAvailable(options.context)) {
+            val resolvedName = com.mardous.booming.data.remote.deezer.model.DeezerArtist.ARTIST_ALIASES[image.name.trim().lowercase()] ?: image.name
+            val cleanName = resolvedName.split(Regex("(?i)\\s+(feat\\.|ft\\.|with|&|,|/)\\s+")).firstOrNull()?.trim() ?: resolvedName
             var pageIndex = 0
             var revisedResults = 0
-            var deezerArtist = repository.deezerArtist(image.name, MAX_RESULT_PER_PAGE, pageIndex)
+            var deezerArtist = repository.deezerArtist(cleanName, MAX_RESULT_PER_PAGE, pageIndex)
+            if (deezerArtist == null || deezerArtist.result.isEmpty()) {
+                deezerArtist = repository.deezerArtist(resolvedName, MAX_RESULT_PER_PAGE, pageIndex)
+            }
             val total = min(deezerArtist?.total ?: 0, MAX_RESULT_COUNT)
             while (deezerArtist != null && revisedResults < total) {
-                val (matched, imageUrl) = deezerArtist.getBestImage(image.name, imageSize)
-                if (matched) {
-                    if (imageUrl != null) {
-                        val data = loader.components.map(imageUrl, options)
-                        val output = loader.components.newFetcher(data, options, loader)
-                        val (fetcher) = checkNotNull(output) { "no supported fetcher for $imageUrl" }
-                        return fetcher.fetch()
+                val (matched, imageUrl) = deezerArtist.getBestImage(resolvedName, imageSize)
+                if (matched && imageUrl != null) {
+                    val saved = customImageManager.setCustomImageFromUrl(image, imageUrl)
+                    if (saved) {
+                        val imageFile = customImageManager.getCustomImageFile(image)
+                        if (imageFile?.isFile == true) {
+                            return SourceFetchResult(
+                                source = ImageSource(imageFile.toOkioPath(), options.fileSystem),
+                                mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(imageFile.extension),
+                                dataSource = DataSource.DISK
+                            )
+                        }
                     }
-                    break
+                    val data = loader.components.map(imageUrl, options)
+                    val output = loader.components.newFetcher(data, options, loader)
+                    val (fetcher) = checkNotNull(output) { "no supported fetcher for $imageUrl" }
+                    return fetcher.fetch()
                 }
                 revisedResults += deezerArtist.result.size
                 if (revisedResults < total) {
-                    deezerArtist = repository.deezerArtist(image.name, min((total - revisedResults), MAX_RESULT_PER_PAGE), pageIndex++)
+                    deezerArtist = repository.deezerArtist(cleanName, min((total - revisedResults), MAX_RESULT_PER_PAGE), ++pageIndex)
+                } else {
+                    break
                 }
             }
         }
 
-        check(image.id > 0 || image.id == Artist.VARIOUS_ARTISTS_ID) { "invalid artist ID (${image.id})" }
-        val stream = checkNotNull(contentResolver.openInputStream(image.coverUri)) {
-            "couldn't open stream from ${image.coverUri}"
-        }
-        return SourceFetchResult(
-            source = ImageSource(
-                source = stream.source().buffer(),
-                fileSystem = options.fileSystem,
-                metadata = null
-            ),
-            mimeType = contentResolver.getType(image.coverUri),
-            dataSource = DataSource.DISK
-        )
+        // Namida approach: Never fallback to album art for artist portraits!
+        // Return null to display clean default circular artist placeholder icon
+        return null
     }
 
     class Factory(

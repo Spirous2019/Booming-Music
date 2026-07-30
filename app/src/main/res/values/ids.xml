@@ -18,6 +18,16 @@
     <item name="action_new_playlist" type="id"/>
     <item name="action_import_playlist" type="id"/>
     <item name="action_multi_select_adapter_check_all" type="id"/>
+    <item name="action_cab_more" type="id"/>
+    <item name="action_change_artist_image" type="id"/>
+
+    <item name="action_sort_order" type="id"/>
+    <item name="action_view_type" type="id"/>
+    <item name="action_view_type_normal" type="id"/>
+    <item name="action_view_type_card" type="id"/>
+    <item name="action_view_type_colored_card" type="id"/>
+    <item name="action_view_type_circle" type="id"/>
+    <item name="action_view_type_image" type="id"/>
 
     <item name="id_inset_consumed" type="id"/>
     <item name="id_wave_amplitude_animator" type="id" />

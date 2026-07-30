@@ -93,7 +93,7 @@ class LyricsEditorFragment : AbsMainActivityFragment(R.layout.fragment_lyrics_ed
         _binding = FragmentLyricsEditorBinding.bind(view)
 
         materialSharedAxis(view)
-        view.applyWindowInsets(left = true, right = true, bottom = true)
+        view.applyWindowInsets(left = true, right = true, bottom = false)
         setSupportActionBar(binding.toolbar)
         permissionLauncher = registerForActivityResult(StartIntentSenderForResult()) {
             if (it.resultCode != Activity.RESULT_OK) {
@@ -127,8 +127,12 @@ class LyricsEditorFragment : AbsMainActivityFragment(R.layout.fragment_lyrics_ed
             binding.progressIndicator.hide()
             binding.embeddedButton.isEnabled = true
             binding.externalButton.isEnabled = true
-            binding.plainInput.setText(result.plainLyrics.content)
-            binding.syncedInput.setText(result.syncedLyrics.content?.rawText)
+            if (!binding.plainInput.hasFocus() && binding.plainInput.text?.toString() != result.plainLyrics.content) {
+                binding.plainInput.setText(result.plainLyrics.content)
+            }
+            if (!binding.syncedInput.hasFocus() && binding.syncedInput.text?.toString() != result.syncedLyrics.content?.rawText) {
+                binding.syncedInput.setText(result.syncedLyrics.content?.rawText)
+            }
             if (!result.loading) {
                 lyricsResult.store(result)
             }
@@ -177,6 +181,7 @@ class LyricsEditorFragment : AbsMainActivityFragment(R.layout.fragment_lyrics_ed
             result.sources.forEach {
                 requireView().findViewById<Button>(it.applicableButtonId)?.setText(it.titleRes)
             }
+            binding.toggleGroup.clearOnButtonCheckedListeners()
             binding.toggleGroup.addOnButtonCheckedListener { group, checkedId, isChecked ->
                 applyCheckedButtonState(result, checkedId, isChecked)
             }
@@ -185,11 +190,11 @@ class LyricsEditorFragment : AbsMainActivityFragment(R.layout.fragment_lyrics_ed
     }
 
     private fun applyCheckedButtonState(lyrics: LyricsResult, checkedId: Int, isChecked: Boolean) {
-        val source = lyrics.sources.first { it.applicableButtonId == checkedId }
+        val source = lyrics.sources.firstOrNull { it.applicableButtonId == checkedId } ?: return
         showLyricsInput(source, isChecked)
 
         val button = binding.toggleGroup.findViewById<Button>(checkedId)
-        if (!isChecked) return
+        if (!isChecked || button == null) return
 
         if (source.tooltipKey.isNotEmpty()) {
             val balloon = createBoomingMusicBalloon(source.tooltipKey) {
@@ -205,8 +210,6 @@ class LyricsEditorFragment : AbsMainActivityFragment(R.layout.fragment_lyrics_ed
     }
 
     private fun showLyricsInput(source: LyricsSource, isChecked: Boolean) {
-        binding.plainInput.clearFocus()
-        binding.syncedInput.clearFocus()
         if (source.isExternalSource) {
             binding.plainInputLayout.isGone = isChecked
             binding.syncedInputLayout.isVisible = isChecked
@@ -214,7 +217,6 @@ class LyricsEditorFragment : AbsMainActivityFragment(R.layout.fragment_lyrics_ed
             binding.syncedInputLayout.isGone = isChecked
             binding.plainInputLayout.isVisible = isChecked
         }
-        activity?.hideSoftKeyboard()
     }
 
     private fun searchLyrics() {

@@ -40,6 +40,22 @@ class CustomArtistImageManager(private val context: Context) {
     fun hasCustomImage(image: ArtistImage) =
         imagesPreferences.getBoolean(image.getFileName(), false)
 
+    fun isNoImage(image: ArtistImage) =
+        imagesPreferences.getBoolean("no_image_" + image.getFileName(), false)
+
+    fun setNoImage(artist: Artist, noImage: Boolean) {
+        imagesPreferences.edit(true) {
+            putBoolean("no_image_" + artist.getFileName(), noImage)
+        }
+        if (noImage) {
+            getCustomImageFile(artist)?.deleteQuietly()
+        }
+        signaturesPreferences.edit(true) {
+            putLong(artist.name, System.currentTimeMillis())
+        }
+        contentResolver.notifyChange(Artists.EXTERNAL_CONTENT_URI, null)
+    }
+
     fun getSignature(image: ArtistImage) =
         signaturesPreferences.getLong(image.name, 0).toString()
 
@@ -106,6 +122,46 @@ class CustomArtistImageManager(private val context: Context) {
         }
     }
 
+    suspend fun setCustomImageFromUrl(image: ArtistImage, imageUrl: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val imageFile = getCustomImageFile(image) ?: return@withContext false
+            val connection = java.net.URL(imageUrl).openConnection()
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+            connection.getInputStream().use { input ->
+                imageFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            updateHasImage(image.getFileName(), image.name, true)
+            contentResolver.notifyChange(Artists.EXTERNAL_CONTENT_URI, null)
+            true
+        } catch (e: Exception) {
+            Log.e("CustomArtistImageManager", "Failed to save artist image from URL: $imageUrl", e)
+            false
+        }
+    }
+
+    suspend fun setCustomImageFromUrl(artist: Artist, imageUrl: String): Boolean = withContext(Dispatchers.IO) {
+        try {
+            val imageFile = getCustomImageFile(artist) ?: return@withContext false
+            val connection = java.net.URL(imageUrl).openConnection()
+            connection.connectTimeout = 10000
+            connection.readTimeout = 10000
+            connection.getInputStream().use { input ->
+                imageFile.outputStream().use { output ->
+                    input.copyTo(output)
+                }
+            }
+            updateHasImage(artist.getFileName(), artist.name, true)
+            contentResolver.notifyChange(Artists.EXTERNAL_CONTENT_URI, null)
+            true
+        } catch (e: Exception) {
+            Log.e("CustomArtistImageManager", "Failed to save artist image from URL: $imageUrl", e)
+            false
+        }
+    }
+
     suspend fun removeCustomImage(artist: Artist): Boolean = withContext(Dispatchers.IO) {
         artist.updateHasImage(false)
 
@@ -118,8 +174,12 @@ class CustomArtistImageManager(private val context: Context) {
     }
 
     private fun Artist.updateHasImage(hasImage: Boolean) {
+        updateHasImage(getFileName(), name, hasImage)
+    }
+
+    private fun updateHasImage(fileName: String, name: String, hasImage: Boolean) {
         imagesPreferences.edit(true) {
-            putBoolean(getFileName(), hasImage)
+            putBoolean(fileName, hasImage)
         }
         signaturesPreferences.edit(true) {
             putLong(name, System.currentTimeMillis())

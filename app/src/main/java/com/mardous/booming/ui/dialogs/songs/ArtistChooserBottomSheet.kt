@@ -17,8 +17,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.google.android.material.bottomsheet.BottomSheetBehavior
@@ -48,6 +50,8 @@ class ArtistChooserBottomSheet : BottomSheetDialogFragment() {
         val dialog = super.onCreateDialog(savedInstanceState)
         (dialog as? BottomSheetDialog)?.let {
             it.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            it.behavior.skipCollapsed = true
+            it.behavior.isFitToContents = true
         }
         return dialog
     }
@@ -104,10 +108,13 @@ class ArtistChooserBottomSheet : BottomSheetDialogFragment() {
                 modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
             )
 
+            val nestedScrollConnection = rememberNestedScrollInteropConnection()
             LazyColumn(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .weight(weight = 1f, fill = false)
                     .padding(bottom = 16.dp)
+                    .nestedScroll(nestedScrollConnection)
             ) {
                 items(artistNames) { name ->
                     Row(

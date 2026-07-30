@@ -32,6 +32,7 @@ import com.mardous.booming.core.model.action.isPresent
 import com.mardous.booming.core.model.filesystem.FileSystemItem
 import com.mardous.booming.core.model.filesystem.FileSystemQuery
 import com.mardous.booming.core.sort.FileSortMode
+import com.mardous.booming.core.sort.SortMode
 import com.mardous.booming.data.model.Folder
 import com.mardous.booming.data.model.Song
 import com.mardous.booming.extensions.files.getCanonicalPathSafe
@@ -76,11 +77,18 @@ class FoldersListFragment : AbsRecyclerViewCustomGridSizeFragment<FileAdapter, G
     private val isFlatView: Boolean
         get() = fileSystem?.isFlatView == true
 
+    override fun getSortMode(): SortMode = sortMode
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         libraryViewModel.getFileSystem().observe(viewLifecycleOwner) { fileSystem ->
             showFolders(fileSystem)
+            setSubHeaderItemCount(adapter?.itemCount ?: 0, R.string.folder_label, R.string.folders_label)
         }
+    }
+
+    override fun onSortModeChanged() {
+        fileSystem?.let { showFolders(it) }
     }
 
     override fun handleBackPress(): Boolean {
@@ -228,20 +236,10 @@ class FoldersListFragment : AbsRecyclerViewCustomGridSizeFragment<FileAdapter, G
     override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
         super.onCreateMenu(menu, inflater)
         inflater.inflate(R.menu.menu_folders, menu)
-        menu.removeItem(R.id.action_view_type)
         menu.findItem(R.id.action_hierarchy_view)?.isChecked = Preferences.hierarchyFolderView
     }
 
-    override fun onPrepareMenu(menu: Menu) {
-        super.onPrepareMenu(menu)
-        sortMode.createMenu(menu)
-    }
-
     override fun onMenuItemSelected(item: MenuItem): Boolean {
-        if (sortMode.sortItemSelected(item)) {
-            libraryViewModel.forceReload(ReloadType.Folders)
-            return true
-        }
         when (item.itemId) {
             R.id.action_hierarchy_view -> {
                 val isChecked = !item.isChecked
@@ -284,6 +282,7 @@ class FoldersListFragment : AbsRecyclerViewCustomGridSizeFragment<FileAdapter, G
         adapter?.submitList(fileSystem.getNavigableChildren(sortMode), sortMode)
     }
 
+    override fun showViewTypeInBottomSheet(): Boolean = false
     override fun getSavedViewType(): GridViewType = GridViewType.Normal
 
     override fun saveViewType(viewType: GridViewType) {}

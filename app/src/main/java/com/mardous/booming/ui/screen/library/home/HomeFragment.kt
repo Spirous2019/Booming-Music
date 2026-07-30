@@ -156,7 +156,7 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home),
     }
 
     private fun checkForMargins() {
-        checkForMargins(binding.recyclerView)
+        checkForMargins(binding.container)
     }
 
     override fun onClick(view: View) {
@@ -303,12 +303,6 @@ class HomeFragment : AbsMainActivityFragment(R.layout.fragment_home),
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
         menuInflater.inflate(R.menu.menu_library, menu)
-        menu.removeItem(R.id.action_scan)
-        menu.removeItem(R.id.action_equalizer)
-        menu.removeItem(R.id.action_grid_size)
-        menu.removeItem(R.id.action_view_type)
-        menu.removeItem(R.id.action_sort_order)
-        menu.findItem(R.id.action_settings).setShowAsAction(MenuItem.SHOW_AS_ACTION_IF_ROOM)
     }
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {

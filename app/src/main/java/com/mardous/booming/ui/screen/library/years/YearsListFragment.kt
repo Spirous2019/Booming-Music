@@ -28,6 +28,7 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import com.mardous.booming.R
 import com.mardous.booming.core.model.GridViewType
+import com.mardous.booming.core.sort.SortMode
 import com.mardous.booming.core.sort.YearSortMode
 import com.mardous.booming.data.model.ReleaseYear
 import com.mardous.booming.ui.IYearCallback
@@ -42,10 +43,22 @@ class YearsListFragment : AbsRecyclerViewCustomGridSizeFragment<YearAdapter, Gri
     override val titleRes: Int = R.string.release_years_label
     override val isShuffleVisible: Boolean = false
 
+    override fun getSortMode(): SortMode = YearSortMode.AllYears
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         libraryViewModel.getYears().observe(viewLifecycleOwner) { releaseYears ->
-            adapter?.dataSet = releaseYears
+            val sortedYears = with(YearSortMode.AllYears) { releaseYears.sorted() }
+            adapter?.dataSet = sortedYears
+            setSubHeaderItemCount(sortedYears.size, R.string.year_label, R.string.years_label)
+        }
+    }
+
+    override fun onSortModeChanged() {
+        libraryViewModel.getYears().value?.let { releaseYears ->
+            val sortedYears = with(YearSortMode.AllYears) { releaseYears.sorted() }
+            adapter?.dataSet = sortedYears
+            setSubHeaderItemCount(sortedYears.size, R.string.year_label, R.string.years_label)
         }
     }
 
@@ -83,19 +96,6 @@ class YearsListFragment : AbsRecyclerViewCustomGridSizeFragment<YearAdapter, Gri
         return true
     }
 
-    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateMenu(menu, inflater)
-        YearSortMode.AllYears.createMenu(menu)
-    }
-
-    override fun onMenuItemSelected(item: MenuItem): Boolean {
-        if (YearSortMode.AllYears.sortItemSelected(item)) {
-            libraryViewModel.forceReload(ReloadType.Years)
-            return true
-        }
-        return super.onMenuItemSelected(item)
-    }
-
     override fun onMediaContentChanged() {
         super.onMediaContentChanged()
         libraryViewModel.forceReload(ReloadType.Years)
@@ -106,6 +106,7 @@ class YearsListFragment : AbsRecyclerViewCustomGridSizeFragment<YearAdapter, Gri
         adapter?.actionMode?.finish()
     }
 
+    override fun showViewTypeInBottomSheet(): Boolean = false
     override fun getSavedViewType(): GridViewType {
         return GridViewType.entries.firstOrNull {
             it.name == sharedPreferences.getString(VIEW_TYPE, null)

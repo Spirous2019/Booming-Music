@@ -29,6 +29,7 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.mardous.booming.R
 import com.mardous.booming.core.model.GridViewType
 import com.mardous.booming.core.sort.GenreSortMode
+import com.mardous.booming.core.sort.SortMode
 import com.mardous.booming.data.model.Genre
 import com.mardous.booming.extensions.navigation.genreDetailArgs
 import com.mardous.booming.ui.IGenreCallback
@@ -43,10 +44,22 @@ class GenresListFragment : AbsRecyclerViewCustomGridSizeFragment<GenreAdapter, G
     override val isShuffleVisible: Boolean = false
     override val emptyMessageRes: Int = R.string.no_genres_label
 
+    override fun getSortMode(): SortMode = GenreSortMode.AllGenres
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         libraryViewModel.getGenres().observe(viewLifecycleOwner) { genres ->
-            adapter?.dataSet = genres
+            val sortedGenres = with(GenreSortMode.AllGenres) { genres.sorted() }
+            adapter?.dataSet = sortedGenres
+            setSubHeaderItemCount(sortedGenres.size, R.string.genre_label, R.string.genres_label)
+        }
+    }
+
+    override fun onSortModeChanged() {
+        libraryViewModel.getGenres().value?.let { genres ->
+            val sortedGenres = with(GenreSortMode.AllGenres) { genres.sorted() }
+            adapter?.dataSet = sortedGenres
+            setSubHeaderItemCount(sortedGenres.size, R.string.genre_label, R.string.genres_label)
         }
     }
 
@@ -70,24 +83,12 @@ class GenresListFragment : AbsRecyclerViewCustomGridSizeFragment<GenreAdapter, G
         findNavController().navigate(R.id.nav_genre_detail, genreDetailArgs(genre))
     }
 
-    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateMenu(menu, inflater)
-        GenreSortMode.AllGenres.createMenu(menu)
-    }
-
-    override fun onMenuItemSelected(item: MenuItem): Boolean {
-        if (GenreSortMode.AllGenres.sortItemSelected(item)) {
-            libraryViewModel.forceReload(ReloadType.Genres)
-            return true
-        }
-        return super.onMenuItemSelected(item)
-    }
-
     override fun onMediaContentChanged() {
         super.onMediaContentChanged()
         libraryViewModel.forceReload(ReloadType.Genres)
     }
 
+    override fun showViewTypeInBottomSheet(): Boolean = false
     override fun getSavedViewType(): GridViewType {
         return GridViewType.entries.firstOrNull {
             it.name == sharedPreferences.getString(VIEW_TYPE, null)

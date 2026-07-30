@@ -31,7 +31,10 @@ import androidx.core.view.isVisible
 import androidx.core.view.updateLayoutParams
 import androidx.core.view.updatePadding
 import androidx.fragment.app.DialogFragment
+import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import kotlinx.coroutines.launch
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.LinearSmoothScroller
@@ -46,6 +49,8 @@ import com.mardous.booming.extensions.dp
 import com.mardous.booming.extensions.launchAndRepeatWithViewLifecycle
 import com.mardous.booming.extensions.resources.createFastScroller
 import com.mardous.booming.extensions.resources.onVerticalScroll
+import com.mardous.booming.extensions.resources.primaryColor
+import com.mardous.booming.extensions.resolveColor
 import com.mardous.booming.extensions.setSupportActionBar
 import com.mardous.booming.extensions.topLevelTransition
 import com.mardous.booming.extensions.whichFragment
@@ -54,14 +59,20 @@ import com.mardous.booming.ui.dialogs.playlists.ImportPlaylistDialog
 import com.mardous.booming.ui.screen.other.ShuffleModeFragment
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import android.widget.ImageView
+import android.widget.TextView
+import com.mardous.booming.core.model.GridViewType
+import com.mardous.booming.core.model.sort.KeySortItem
+import com.mardous.booming.core.sort.SortMode
+import com.mardous.booming.ui.dialogs.SortBottomSheetDialogFragment
 import me.zhanghai.android.fastscroll.FastScroller
 import org.koin.android.ext.android.inject
 
 abstract class AbsRecyclerViewFragment<A : RecyclerView.Adapter<*>, LM : RecyclerView.LayoutManager> :
     AbsMainActivityFragment(R.layout.fragment_main_recycler), IScrollHelper {
 
-    private var _binding: FragmentMainRecyclerBinding? = null
-    private val binding get() = _binding!!
+    protected var _binding: FragmentMainRecyclerBinding? = null
+    protected val binding get() = _binding!!
 
     protected var adapter: A? = null
     protected var layoutManager: LM? = null
@@ -88,6 +99,21 @@ abstract class AbsRecyclerViewFragment<A : RecyclerView.Adapter<*>, LM : Recycle
         checkForMargins()
         setUpRecyclerView()
         setupToolbar()
+        setupSubHeader()
+
+        binding.swipeRefresh.setColorSchemeColors(requireContext().primaryColor())
+        binding.swipeRefresh.setProgressBackgroundColorSchemeColor(requireContext().resolveColor(com.google.android.material.R.attr.colorSurfaceContainer))
+        binding.swipeRefresh.setOnRefreshListener {
+            libraryViewModel.refreshLibrary(requireContext().applicationContext)
+        }
+
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                libraryViewModel.isRefreshingFlow.collect { refreshing ->
+                    binding.swipeRefresh.isRefreshing = refreshing
+                }
+            }
+        }
 
         // Add listeners when shuffle is visible
         if (isShuffleVisible) {
@@ -229,7 +255,7 @@ abstract class AbsRecyclerViewFragment<A : RecyclerView.Adapter<*>, LM : Recycle
     }
 
     private fun checkForMargins() {
-        checkForMargins(binding.recyclerView)
+        checkForMargins(binding.swipeRefresh)
     }
 
     private fun initLayoutManager() {
@@ -260,6 +286,59 @@ abstract class AbsRecyclerViewFragment<A : RecyclerView.Adapter<*>, LM : Recycle
         binding.appBarLayout.setExpanded(true, true)
     }
 
+    open fun getSortMode(): SortMode? = null
+    open fun showViewTypeInBottomSheet(): Boolean = false
+    open fun selectedViewType(): GridViewType? = null
+    open fun onViewTypeChanged(viewType: GridViewType) {}
+    open fun showOnlyAlbumArtistsInBottomSheet(): Boolean = false
+    open fun isOnlyAlbumArtists(): Boolean = false
+    open fun onOnlyAlbumArtistsChanged(enabled: Boolean) {}
+
+    fun updateSubHeaderSortText() {
+        val mode = getSortMode() ?: return
+        val itemsField = SortMode::class.java.getDeclaredField("items")
+        itemsField.isAccessible = true
+        @Suppress("UNCHECKED_CAST")
+        val items = itemsField.get(mode) as? List<*> ?: emptyList<Any>()
+        val keyItems = items.filterIsInstance<KeySortItem>()
+
+        val activeItem = keyItems.find { it.key == mode.selectedKey }
+        if (activeItem != null) {
+            val sortText = _binding?.appBarLayout?.findViewById<TextView>(R.id.sort_text)
+            sortText?.setText(activeItem.title)
+            val sortArrow = _binding?.appBarLayout?.findViewById<ImageView>(R.id.sort_arrow)
+            sortArrow?.setImageResource(
+                if (mode.selectedDescending) R.drawable.ic_keyboard_arrow_down_24dp
+                else R.drawable.ic_keyboard_arrow_up_24dp
+            )
+        }
+    }
+
+    fun setSubHeaderItemCount(count: Int, labelSingularRes: Int, labelPluralRes: Int) {
+        val label = if (count == 1) getString(labelSingularRes) else getString(labelPluralRes)
+        _binding?.appBarLayout?.findViewById<TextView>(R.id.item_count_text)?.text = "$count $label"
+    }
+
+    protected open fun setupSubHeader() {
+        val sortBtn = _binding?.appBarLayout?.findViewById<View>(R.id.sort_button)
+        sortBtn?.setOnClickListener {
+            val mode = getSortMode() ?: return@setOnClickListener
+            val dialog = SortBottomSheetDialogFragment().apply {
+                this.sortMode = mode
+                this.onSortChanged = {
+                    updateSubHeaderSortText()
+                    onSortModeChanged()
+                }
+            }
+            dialog.show(childFragmentManager, "SORT_BOTTOM_SHEET")
+        }
+        updateSubHeaderSortText()
+    }
+
+    open fun onSortModeChanged() {
+        adapter?.notifyDataSetChanged()
+    }
+
     override fun onPrepareMenu(menu: Menu) {
     }
 
@@ -270,8 +349,6 @@ abstract class AbsRecyclerViewFragment<A : RecyclerView.Adapter<*>, LM : Recycle
     override fun onMenuItemSelected(item: MenuItem): Boolean {
         when (item.itemId) {
             R.id.action_settings -> findNavController().navigate(R.id.nav_settings)
-            R.id.action_scan -> mainActivity.scanAllPaths()
-            R.id.action_equalizer -> findNavController().navigate(R.id.nav_equalizer)
             R.id.action_import_playlist -> ImportPlaylistDialog().show(childFragmentManager, "IMPORT_PLAYLIST")
         }
         return false

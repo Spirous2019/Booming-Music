@@ -27,11 +27,16 @@ import com.mardous.booming.ui.screen.lyrics.EditableLyrics
 import com.mardous.booming.ui.screen.lyrics.LyricsResult
 import com.mardous.booming.ui.screen.lyrics.SaveLyricsResult
 import org.mozilla.universalchardet.UniversalDetector
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.withContext
 import java.io.BufferedInputStream
 import java.io.File
 import java.io.IOException
 import java.nio.charset.Charset
 import java.util.Collections
+import java.util.concurrent.ConcurrentHashMap
 import java.util.regex.Pattern
 
 interface LyricsRepository {
@@ -50,6 +55,10 @@ interface LyricsRepository {
     suspend fun writableUris(song: Song): List<Uri>
     suspend fun shareSyncedLyrics(song: Song): Uri?
     suspend fun deleteAllLyrics()
+    fun hasLyricsCached(songId: Long): Boolean?
+    suspend fun checkLyricsAvailability(song: Song): Boolean
+    suspend fun prefetchLyricsAvailability(songs: List<Song>)
+    fun clearLyricsAvailabilityCache()
 }
 
 class RealLyricsRepository(
@@ -66,6 +75,7 @@ class RealLyricsRepository(
     private val ttmlLyricsParser = TtmlLyricsParser()
 
     private val lyricsParsers = listOf(lrcLyricsParser, ttmlLyricsParser)
+    private val lyricsAvailabilityCache = ConcurrentHashMap<Long, Boolean>()
     private val lyricsCache: MutableMap<Long, LyricsResult> = Collections.synchronizedMap(
         object : LinkedHashMap<Long, LyricsResult>(CACHE_SIZE, 0.75f, true) {
             override fun removeEldestEntry(eldest: MutableMap.MutableEntry<Long, LyricsResult>?): Boolean {
@@ -73,6 +83,54 @@ class RealLyricsRepository(
             }
         }
     )
+
+    override fun hasLyricsCached(songId: Long): Boolean? {
+        return lyricsAvailabilityCache[songId]
+    }
+
+    override suspend fun checkLyricsAvailability(song: Song): Boolean {
+        if (song.id == Song.emptySong.id) return false
+        lyricsAvailabilityCache[song.id]?.let { return it }
+
+        lyricsCache[song.id]?.let { cached ->
+            if (!cached.isEmpty && !cached.instrumental) {
+                lyricsAvailabilityCache[song.id] = true
+                return true
+            }
+        }
+
+        val storedLyrics = lyricsDao.getLyrics(song.id)
+        if (storedLyrics != null && storedLyrics.syncedLyrics.isNotEmpty()) {
+            lyricsAvailabilityCache[song.id] = true
+            return true
+        }
+
+        val fileLyrics = findLyricsFiles(song)
+        if (fileLyrics.isNotEmpty()) {
+            lyricsAvailabilityCache[song.id] = true
+            return true
+        }
+
+        val embedded = embeddedLyrics(song)
+        val hasEmbedded = !embedded.isNullOrBlank()
+        lyricsAvailabilityCache[song.id] = hasEmbedded
+        return hasEmbedded
+    }
+
+    override suspend fun prefetchLyricsAvailability(songs: List<Song>) {
+        withContext(Dispatchers.IO) {
+            val uncached = songs.filter { song -> song.id != Song.emptySong.id && !lyricsAvailabilityCache.containsKey(song.id) }
+            uncached.chunked(15).forEach { chunk ->
+                chunk.map { song ->
+                    async { checkLyricsAvailability(song) }
+                }.awaitAll()
+            }
+        }
+    }
+
+    override fun clearLyricsAvailabilityCache() {
+        lyricsAvailabilityCache.clear()
+    }
 
     private fun createInstrumentalDetector() =
         InstrumentalDetector(
@@ -307,11 +365,13 @@ class RealLyricsRepository(
         }
         if (saveResult.hasChanged) {
             invalidateCache(song.id)
+            lyricsAvailabilityCache.remove(song.id)
         }
         return saveResult
     }
 
     override suspend fun saveSyncedLyrics(song: Song, lyrics: String?): Boolean {
+        lyricsAvailabilityCache.remove(song.id)
         if (lyrics.isNullOrEmpty()) {
             val lyrics = lyricsDao.getLyrics(song.id)
             if (lyrics != null) {
@@ -351,6 +411,7 @@ class RealLyricsRepository(
                     if (fileContent != null && lyricsParsers.any { it.handles(fileContent) }) {
                         lyricsDao.insertLyrics(song.toLyricsEntity(fileContent))
                         invalidateCache(song.id)
+                        lyricsAvailabilityCache.remove(song.id)
                         true
                     } else {
                         false
@@ -420,6 +481,7 @@ class RealLyricsRepository(
     override suspend fun deleteAllLyrics() {
         lyricsDao.removeLyrics()
         lyricsCache.clear()
+        lyricsAvailabilityCache.clear()
     }
 
     companion object {

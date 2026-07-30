@@ -111,6 +111,7 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
         binding.header.image.removeHorizontalMarginIfRequired()
 
         setSupportActionBar(binding.toolbar)
+        setupToolbarOverflowMenu()
         //binding.collapsingAppBarLayout.setupStatusBarScrim(requireContext())
 
         libraryViewModel.getMiniPlayerMargin().observe(viewLifecycleOwner) {
@@ -192,22 +193,7 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
     }
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
-        menuInflater.inflate(R.menu.menu_playlist_detail, menu)
-    }
-
-    override fun onPrepareMenu(menu: Menu) {
-        playlist.let {
-            if (it.playlistEntity.isFavorites(requireContext())) {
-                menu.removeItem(R.id.action_delete_playlist)
-            }
-        }
-        if (playlistSongAdapter?.isLockDrag == true) {
-            menu.findItem(R.id.action_lock)
-                ?.setIcon(R.drawable.ic_lock_24dp)
-        } else {
-            menu.findItem(R.id.action_lock)
-                ?.setIcon(R.drawable.ic_lock_open_24dp)
-        }
+        menuInflater.inflate(R.menu.menu_playlist_detail_toolbar, menu)
         if (!isLandscape()) {
             menu.removeItem(R.id.action_search)
         }
@@ -225,6 +211,11 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
                     R.id.nav_search,
                     searchArgs(playlist.playlistEntity.searchFilter(requireContext()))
                 )
+                true
+            }
+
+            R.id.action_more_options -> {
+                showToolbarMenuBottomSheet()
                 true
             }
 
@@ -292,6 +283,40 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
         wrappedAdapter = null
         super.onDestroyView()
         _binding = null
+    }
+
+    private fun setupToolbarOverflowMenu() {
+        binding.toolbar.post {
+            val overflowButton = binding.toolbar.findViewById<View>(androidx.appcompat.R.id.action_menu_presenter)
+            overflowButton?.setOnClickListener {
+                showToolbarMenuBottomSheet()
+            }
+        }
+    }
+
+    private fun showToolbarMenuBottomSheet() {
+        val popup = androidx.appcompat.widget.PopupMenu(requireContext(), binding.toolbar)
+        requireActivity().menuInflater.inflate(R.menu.menu_playlist_detail, popup.menu)
+        if (playlist.playlistEntity.isFavorites(requireContext())) {
+            popup.menu.removeItem(R.id.action_delete_playlist)
+        }
+        if (playlistSongAdapter?.isLockDrag == true) {
+            popup.menu.findItem(R.id.action_lock)?.setIcon(R.drawable.ic_lock_24dp)
+        } else {
+            popup.menu.findItem(R.id.action_lock)?.setIcon(R.drawable.ic_lock_open_24dp)
+        }
+        if (!isLandscape()) {
+            popup.menu.removeItem(R.id.action_search)
+        }
+
+        com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment()
+            .setMenu(popup.menu) { itemId ->
+                val item = popup.menu.findItem(itemId)
+                if (item != null) {
+                    onMenuItemSelected(item)
+                }
+            }
+            .show(childFragmentManager, com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment.TAG)
     }
 
     companion object {

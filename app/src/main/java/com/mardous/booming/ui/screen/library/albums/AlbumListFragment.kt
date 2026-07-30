@@ -30,6 +30,7 @@ import com.mardous.booming.core.model.GridViewType
 import com.mardous.booming.core.model.sort.SortKey
 import com.mardous.booming.core.sort.AlbumSortMode
 import com.mardous.booming.core.sort.SongSortMode
+import com.mardous.booming.core.sort.SortMode
 import com.mardous.booming.data.model.Album
 import com.mardous.booming.extensions.navigation.albumDetailArgs
 import com.mardous.booming.extensions.navigation.asFragmentExtras
@@ -50,10 +51,22 @@ class AlbumListFragment : AbsRecyclerViewCustomGridSizeFragment<AlbumAdapter, Gr
     override val emptyMessageRes: Int
         get() = R.string.no_albums_label
 
+    override fun getSortMode(): SortMode = AlbumSortMode.AllAlbums
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         libraryViewModel.getAlbums().observe(viewLifecycleOwner) { albums ->
-            adapter?.dataSet = albums
+            val sortedAlbums = with(AlbumSortMode.AllAlbums) { albums.sorted() }
+            adapter?.dataSet = sortedAlbums
+            setSubHeaderItemCount(sortedAlbums.size, R.string.album_label, R.string.albums_label)
+        }
+    }
+
+    override fun onSortModeChanged() {
+        libraryViewModel.getAlbums().value?.let { albums ->
+            val sortedAlbums = with(AlbumSortMode.AllAlbums) { albums.sorted() }
+            adapter?.dataSet = sortedAlbums
+            setSubHeaderItemCount(sortedAlbums.size, R.string.album_label, R.string.albums_label)
         }
     }
 
@@ -141,19 +154,6 @@ class AlbumListFragment : AbsRecyclerViewCustomGridSizeFragment<AlbumAdapter, Gr
     override fun onGridSizeChanged(isLand: Boolean, gridColumns: Int) {
         layoutManager?.spanCount = gridColumns
         adapter?.notifyDataSetChanged()
-    }
-
-    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateMenu(menu, inflater)
-        AlbumSortMode.AllAlbums.createMenu(menu)
-    }
-
-    override fun onMenuItemSelected(item: MenuItem): Boolean {
-        if (AlbumSortMode.AllAlbums.sortItemSelected(item)) {
-            libraryViewModel.forceReload(ReloadType.Albums)
-            return true
-        }
-        return super.onMenuItemSelected(item)
     }
 
     override fun onMediaContentChanged() {

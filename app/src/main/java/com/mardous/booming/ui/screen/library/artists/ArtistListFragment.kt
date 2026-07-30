@@ -30,6 +30,7 @@ import com.mardous.booming.core.model.GridViewType
 import com.mardous.booming.core.model.sort.SortKey
 import com.mardous.booming.core.sort.ArtistSortMode
 import com.mardous.booming.core.sort.SongSortMode
+import com.mardous.booming.core.sort.SortMode
 import com.mardous.booming.data.model.Artist
 import com.mardous.booming.extensions.navigation.artistDetailArgs
 import com.mardous.booming.extensions.navigation.asFragmentExtras
@@ -50,10 +51,28 @@ class ArtistListFragment : AbsRecyclerViewCustomGridSizeFragment<ArtistAdapter, 
     override val emptyMessageRes: Int
         get() = R.string.no_artists_label
 
+    override fun getSortMode(): SortMode = ArtistSortMode.AllArtists
+    override fun showOnlyAlbumArtistsInBottomSheet(): Boolean = true
+    override fun isOnlyAlbumArtists(): Boolean = Preferences.onlyAlbumArtists
+    override fun onOnlyAlbumArtistsChanged(enabled: Boolean) {
+        Preferences.onlyAlbumArtists = enabled
+        libraryViewModel.forceReload(ReloadType.Artists)
+    }
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
         libraryViewModel.getArtists().observe(viewLifecycleOwner) { artists ->
-            adapter?.dataSet = artists
+            val sortedArtists = with(ArtistSortMode.AllArtists) { artists.sorted() }
+            adapter?.dataSet = sortedArtists
+            setSubHeaderItemCount(sortedArtists.size, R.string.artist_label, R.string.artists_label)
+        }
+    }
+
+    override fun onSortModeChanged() {
+        libraryViewModel.getArtists().value?.let { artists ->
+            val sortedArtists = with(ArtistSortMode.AllArtists) { artists.sorted() }
+            adapter?.dataSet = sortedArtists
+            setSubHeaderItemCount(sortedArtists.size, R.string.artist_label, R.string.artists_label)
         }
     }
 
@@ -107,29 +126,6 @@ class ArtistListFragment : AbsRecyclerViewCustomGridSizeFragment<ArtistAdapter, 
 
     override fun artistsMenuItemClick(artists: List<Artist>, menuItem: MenuItem) {
         artists.onArtistsMenu(this, menuItem)
-    }
-
-    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateMenu(menu, inflater)
-        ArtistSortMode.AllArtists.createMenu(menu)
-        menu.add(0, R.id.action_album_artist, 0, R.string.show_album_artists).apply {
-            isCheckable = true
-            isChecked = Preferences.onlyAlbumArtists
-        }
-    }
-
-    override fun onMenuItemSelected(item: MenuItem): Boolean {
-        if (item.itemId == R.id.action_album_artist) {
-            item.isChecked = !item.isChecked
-            Preferences.onlyAlbumArtists = item.isChecked
-            libraryViewModel.forceReload(ReloadType.Artists)
-            return true
-        }
-        if (ArtistSortMode.AllArtists.sortItemSelected(item)) {
-            libraryViewModel.forceReload(ReloadType.Artists)
-            return true
-        }
-        return super.onMenuItemSelected(item)
     }
 
     override fun getSavedViewType(): GridViewType {

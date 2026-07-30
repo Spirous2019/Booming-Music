@@ -51,7 +51,7 @@ fun playInfoArgs(artist: Artist) =
             .build()
             .toBundle()
     } else {
-        PlayInfoFragmentArgs.Builder(true, artist.id, null)
+        PlayInfoFragmentArgs.Builder(true, artist.id, artist.name)
             .build()
             .toBundle()
     }

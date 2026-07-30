@@ -17,6 +17,8 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.platform.ComposeView
 import androidx.compose.ui.platform.ViewCompositionStrategy
 import androidx.compose.ui.unit.dp
@@ -33,11 +35,16 @@ import com.mardous.booming.data.model.Song
 import com.mardous.booming.extensions.media.displayArtistName
 import com.mardous.booming.ui.component.compose.MediaImage
 
+import androidx.compose.ui.res.painterResource
+
 data class BottomSheetMenuItem(
     val id: Int,
     val title: String,
     val isEnabled: Boolean,
-    val isVisible: Boolean
+    val isVisible: Boolean,
+    val iconRes: Int? = null,
+    val isCheckable: Boolean = false,
+    val isChecked: Boolean = false
 )
 
 class MenuBottomSheetDialogFragment : BottomSheetDialogFragment() {
@@ -91,7 +98,10 @@ class MenuBottomSheetDialogFragment : BottomSheetDialogFragment() {
                         id = item.itemId,
                         title = fullTitle,
                         isEnabled = item.isEnabled,
-                        isVisible = item.isVisible
+                        isVisible = item.isVisible,
+                        iconRes = getMenuItemIcon(item.itemId, itemTitle),
+                        isCheckable = item.isCheckable,
+                        isChecked = item.isChecked
                     )
                 )
             }
@@ -103,6 +113,7 @@ class MenuBottomSheetDialogFragment : BottomSheetDialogFragment() {
         (dialog as? BottomSheetDialog)?.let {
             it.behavior.state = BottomSheetBehavior.STATE_EXPANDED
             it.behavior.skipCollapsed = true
+            it.behavior.isFitToContents = true
         }
         return dialog
     }
@@ -191,8 +202,14 @@ class MenuBottomSheetDialogFragment : BottomSheetDialogFragment() {
             }
 
             Spacer(modifier = Modifier.height(8.dp))
- 
-            LazyColumn {
+
+            val nestedScrollConnection = rememberNestedScrollInteropConnection()
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(weight = 1f, fill = false)
+                    .nestedScroll(nestedScrollConnection)
+            ) {
                 itemsIndexed(items) { index, item ->
                     val alpha = if (item.isEnabled) 1f else 0.4f
                     
@@ -211,15 +228,106 @@ class MenuBottomSheetDialogFragment : BottomSheetDialogFragment() {
                         modifier = Modifier
                             .fillMaxWidth()
                             .clickable(enabled = item.isEnabled) { onItemClick(item.id) }
-                            .padding(horizontal = 24.dp, vertical = 16.dp),
+                            .padding(horizontal = 24.dp, vertical = 14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+                        item.iconRes?.let { iconDrawable ->
+                            Icon(
+                                painter = painterResource(id = iconDrawable),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = alpha),
+                                modifier = Modifier.size(24.dp)
+                            )
+                            Spacer(modifier = Modifier.width(20.dp))
+                        }
                         Text(
                             text = item.title,
                             style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha)
+                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = alpha),
+                            modifier = Modifier.weight(1f)
                         )
+                        if (item.isCheckable) {
+                            Spacer(modifier = Modifier.width(16.dp))
+                            Switch(
+                                checked = item.isChecked,
+                                onCheckedChange = null,
+                                enabled = item.isEnabled
+                            )
+                        }
                     }
+                }
+            }
+        }
+    }
+
+    private fun getMenuItemIcon(itemId: Int, title: String): Int? {
+        return when (itemId) {
+            R.id.action_play -> R.drawable.ic_play_24dp
+            R.id.action_play_next, R.id.action_put_after_current_track -> R.drawable.ic_queue_play_next_24dp
+            R.id.action_add_to_playing_queue, R.id.action_playing_queue -> R.drawable.ic_queue_music_24dp
+            R.id.action_add_to_playlist -> R.drawable.ic_playlist_add_24dp
+            R.id.action_remove_from_playing_queue -> R.drawable.ic_clear_all_24dp
+            R.id.action_remove_from_playlist -> R.drawable.ic_remove_circle_24dp
+            R.id.action_stop_after_track -> R.drawable.ic_stop_circle_24dp
+            R.id.action_sleep_timer -> R.drawable.ic_timer_24dp
+            R.id.action_shuffle_play -> R.drawable.ic_shuffle_24dp
+            R.id.action_go_to_album -> R.drawable.ic_album_24dp
+            R.id.action_go_to_artist -> R.drawable.ic_artist_24dp
+            R.id.menu_go_to -> R.drawable.ic_folder_24dp
+            R.id.action_tag_editor -> R.drawable.ic_edit_note_24dp
+            R.id.action_edit_playlist -> R.drawable.ic_edit_24dp
+            R.id.action_export_playlist -> R.drawable.ic_file_export_24dp
+            R.id.action_show_lyrics -> R.drawable.ic_lyrics_24dp
+            R.id.action_share, R.id.action_share_now_playing -> R.drawable.ic_share_24dp
+            R.id.action_delete_from_device, R.id.action_delete_playlist -> R.drawable.ic_delete_24dp
+            R.id.action_blacklist -> R.drawable.ic_blacklist_24dp
+            R.id.action_details -> R.drawable.ic_info_24dp
+            R.id.action_play_info -> R.drawable.ic_info_24dp
+            R.id.action_horizontal_albums -> R.drawable.ic_view_carousel_24dp
+            R.id.action_toggle_compact_song_view -> R.drawable.ic_format_line_spacing_24dp
+            R.id.action_ignore_singles -> R.drawable.ic_music_note_24dp
+            R.id.action_show_album_duration -> R.drawable.ic_timer_24dp
+            R.id.action_equalizer -> R.drawable.ic_equalizer_24dp
+            R.id.action_sound_settings -> R.drawable.ic_volume_up_24dp
+            R.id.action_web_search -> R.drawable.ic_language_24dp
+            R.id.action_favorite -> R.drawable.ic_favorite_24dp
+            R.id.action_set_as_ringtone -> R.drawable.ic_phonelink_ring_24dp
+            R.id.action_multi_select_adapter_check_all -> R.drawable.ic_select_all_24dp
+            R.id.action_change_artist_image -> R.drawable.ic_image_24dp
+            R.id.action_lock -> R.drawable.ic_lock_24dp
+            else -> {
+                val idString = try {
+                    context?.resources?.getResourceEntryName(itemId) ?: ""
+                } catch (e: Exception) { "" }
+                when {
+                    idString.contains("stop_after") || title.contains("stop after", ignoreCase = true) -> R.drawable.ic_stop_circle_24dp
+                    idString.contains("sleep_timer") || title.contains("sleep timer", ignoreCase = true) -> R.drawable.ic_timer_24dp
+                    idString.contains("remove_from_playlist") || title.contains("remove from playlist", ignoreCase = true) -> R.drawable.ic_remove_circle_24dp
+                    idString.contains("play_next") || idString.contains("queue_next") || idString.contains("put_after") -> R.drawable.ic_queue_play_next_24dp
+                    idString.contains("playing_queue") -> R.drawable.ic_queue_music_24dp
+                    idString.contains("playlist") -> R.drawable.ic_playlist_add_24dp
+                    idString.contains("album") -> R.drawable.ic_album_24dp
+                    idString.contains("artist") -> R.drawable.ic_artist_24dp
+                    idString.contains("folder") || idString.contains("dir") -> R.drawable.ic_folder_24dp
+                    idString.contains("tag") -> R.drawable.ic_edit_note_24dp
+                    idString.contains("edit") -> R.drawable.ic_edit_24dp
+                    idString.contains("export") -> R.drawable.ic_file_export_24dp
+                    idString.contains("lyric") -> R.drawable.ic_lyrics_24dp
+                    idString.contains("share") -> R.drawable.ic_share_24dp
+                    idString.contains("delete") -> R.drawable.ic_delete_24dp
+                    idString.contains("black") -> R.drawable.ic_blacklist_24dp
+                    idString.contains("detail") || idString.contains("info") -> R.drawable.ic_info_24dp
+                    idString.contains("select_all") -> R.drawable.ic_select_all_24dp
+                    title.contains("Go to album", ignoreCase = true) -> R.drawable.ic_album_24dp
+                    title.contains("Go to artist", ignoreCase = true) -> R.drawable.ic_artist_24dp
+                    title.contains("Go to folder", ignoreCase = true) -> R.drawable.ic_folder_24dp
+                    title.contains("Tag", ignoreCase = true) -> R.drawable.ic_edit_24dp
+                    title.contains("Lyric", ignoreCase = true) -> R.drawable.ic_lyrics_24dp
+                    title.contains("Blacklist", ignoreCase = true) -> R.drawable.ic_blacklist_24dp
+                    title.contains("Detail", ignoreCase = true) -> R.drawable.ic_info_24dp
+                    title.contains("Share", ignoreCase = true) -> R.drawable.ic_share_24dp
+                    title.contains("Delete", ignoreCase = true) || title.contains("Remove", ignoreCase = true) -> R.drawable.ic_delete_24dp
+                    else -> null
                 }
             }
         }

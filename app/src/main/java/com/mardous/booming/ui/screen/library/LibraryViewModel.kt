@@ -69,6 +69,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import java.io.File
 import kotlin.coroutines.resume
+import org.koin.core.component.get
 
 class LibraryViewModel(
     private val repository: Repository,
@@ -141,6 +142,51 @@ class LibraryViewModel(
 
     fun allSongs() = liveData(IO) {
         emit(repository.allSongs())
+    }
+
+    val isRefreshingFlow = MutableStateFlow(false)
+
+    fun refreshLibrary(context: Context) {
+        if (isRefreshingFlow.value) return
+        isRefreshingFlow.value = true
+        viewModelScope.launch(IO) {
+            try {
+                runCatching {
+                    val lyricsRepository: com.mardous.booming.data.local.repository.LyricsRepository =
+                        org.koin.java.KoinJavaComponent.get(com.mardous.booming.data.local.repository.LyricsRepository::class.java)
+                    lyricsRepository.clearLyricsAvailabilityCache()
+                }
+
+                val storageRoots = StorageUtil.refreshStorageVolumes()
+                    .map { it.filePath }
+                    .plus(Environment.getExternalStorageDirectory().path)
+                    .distinct()
+                    .toTypedArray()
+
+                runCatching {
+                    suspendCancellableCoroutine<Int> { continuation ->
+                        var progress = 0
+                        val total = storageRoots.size
+                        MediaScannerConnection.scanFile(context, storageRoots, null) { _, _ ->
+                            progress++
+                            if (progress == total && continuation.isActive) {
+                                continuation.resume(total)
+                            }
+                        }
+                    }
+                }
+
+                fetchSongs()
+                fetchAlbums()
+                fetchArtists()
+                fetchPlaylists()
+                fetchGenres()
+                fetchYears()
+                fetchSuggestions()
+            } finally {
+                isRefreshingFlow.value = false
+            }
+        }
     }
 
     fun forceReload(reloadType: ReloadType) = viewModelScope.launch(IO) {

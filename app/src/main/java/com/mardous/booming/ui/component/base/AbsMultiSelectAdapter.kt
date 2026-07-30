@@ -36,9 +36,16 @@ abstract class AbsMultiSelectAdapter<VH : RecyclerView.ViewHolder, I>(
         get() = actionMode != null
     private val checked: MutableList<I> = ArrayList()
 
+    private var internalCabMenu: Menu? = null
+
     override fun onCreateActionMode(mode: ActionMode, menu: Menu): Boolean {
-        val inflater = mode.menuInflater
-        inflater?.inflate(menuRes, menu)
+        val popup = androidx.appcompat.widget.PopupMenu(activity, activity.window.decorView)
+        mode.menuInflater.inflate(menuRes, popup.menu)
+        internalCabMenu = popup.menu
+
+        val moreItem = menu.add(Menu.NONE, R.id.action_cab_more, Menu.NONE, R.string.action_more)
+        moreItem.setIcon(R.drawable.ic_more_vert_24dp)
+        moreItem.setShowAsAction(MenuItem.SHOW_AS_ACTION_ALWAYS)
         return true
     }
 
@@ -47,19 +54,49 @@ abstract class AbsMultiSelectAdapter<VH : RecyclerView.ViewHolder, I>(
     }
 
     override fun onActionItemClicked(mode: ActionMode, item: MenuItem): Boolean {
-        if (item.itemId == R.id.action_multi_select_adapter_check_all) {
-            checkAll()
-        } else {
-            onMultipleItemAction(item, ArrayList(checked))
-            actionMode?.finish()
-            clearChecked()
+        if (item.itemId == R.id.action_cab_more) {
+            showSelectionBottomSheet()
+            return true
         }
-        return true
+        return false
+    }
+
+    private fun showSelectionBottomSheet() {
+        val cabMenu = internalCabMenu ?: return
+        val checkAllItem = cabMenu.findItem(R.id.action_multi_select_adapter_check_all)
+        if (checkAllItem != null) {
+            if (checked.size >= itemCount && itemCount > 0) {
+                checkAllItem.title = activity.getString(R.string.deselect_all_title)
+            } else {
+                checkAllItem.title = activity.getString(R.string.select_all_title)
+            }
+        }
+
+        val dialog = com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment()
+        dialog.setMenu(cabMenu) { selectedItemId ->
+            if (selectedItemId == R.id.action_multi_select_adapter_check_all) {
+                if (checked.size >= itemCount && itemCount > 0) {
+                    clearChecked()
+                    updateCab()
+                } else {
+                    checkAll()
+                }
+            } else {
+                val menuItem = cabMenu.findItem(selectedItemId)
+                if (menuItem != null) {
+                    onMultipleItemAction(menuItem, ArrayList(checked))
+                    actionMode?.finish()
+                    clearChecked()
+                }
+            }
+        }
+        dialog.show(activity.supportFragmentManager, com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment.TAG)
     }
 
     override fun onDestroyActionMode(mode: ActionMode) {
         clearChecked()
         actionMode = null
+        internalCabMenu = null
         onBackPressedCallback.remove()
     }
 

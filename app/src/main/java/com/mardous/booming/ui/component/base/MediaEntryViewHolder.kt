@@ -38,6 +38,7 @@ open class MediaEntryViewHolder(itemView: View) : RecyclerView.ViewHolder(itemVi
     val title: TextView? = itemView.findViewById(R.id.title)
     val text: TextView? = itemView.findViewById(R.id.text)
     val time: TextView? = itemView.findViewById(R.id.time)
+    val lyricsBadge: TextView? = itemView.findViewById(R.id.lyrics_badge)
     val dragView: View? = itemView.findViewById(R.id.drag_view)
     val paletteColorContainer: View? = itemView.findViewById(R.id.palette_color_container)
 

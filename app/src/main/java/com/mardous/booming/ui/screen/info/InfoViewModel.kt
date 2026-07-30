@@ -47,10 +47,15 @@ class InfoViewModel(private val repository: Repository) : ViewModel() {
     }
 
     fun loadArtist(id: Long, name: String?): LiveData<Artist> = liveData(Dispatchers.IO) {
-        if (name.isNullOrEmpty()) {
+        if (!name.isNullOrEmpty()) {
+            val artist = repository.artistById(id, name)
+            if (artist != Artist.empty) {
+                emit(artist)
+            } else {
+                emit(repository.albumArtistByName(name))
+            }
+        } else if (id != -1L) {
             emit(repository.artistById(id))
-        } else if (id == -1L) {
-            emit(repository.albumArtistByName(name))
         } else {
             emit(Artist.empty)
         }

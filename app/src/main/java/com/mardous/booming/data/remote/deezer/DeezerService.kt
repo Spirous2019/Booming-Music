@@ -48,4 +48,12 @@ class DeezerService(private val client: HttpClient) {
                 parameters.append("q", artistName)
             }
         }.body<DeezerArtist>()
+
+    suspend fun albumsByArtist(artistName: String, limit: Int = 25) =
+        client.get("https://api.deezer.com/search/album") {
+            url {
+                parameters.append("limit", limit.toString())
+                parameters.append("q", artistName)
+            }
+        }.body<DeezerAlbum>()
 }

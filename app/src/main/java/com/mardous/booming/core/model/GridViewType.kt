@@ -20,14 +20,20 @@ package com.mardous.booming.core.model
 import androidx.annotation.IdRes
 import androidx.annotation.LayoutRes
 import androidx.annotation.Px
+import androidx.annotation.StringRes
 import com.mardous.booming.R
 
-enum class GridViewType(@IdRes val itemId: Int, @LayoutRes val layoutRes: Int, val margin: Int = 4) {
-    Normal(R.id.action_view_type_normal, R.layout.item_grid),
-    Card(R.id.action_view_type_card, R.layout.item_card),
-    ColoredCard(R.id.action_view_type_colored_card, R.layout.item_card_color),
-    Circle(R.id.action_view_type_circle, R.layout.item_grid_circle),
-    Image(R.id.action_view_type_image, R.layout.item_image_gradient, 0);
+enum class GridViewType(
+    @IdRes val itemId: Int,
+    @LayoutRes val layoutRes: Int,
+    @StringRes val titleRes: Int,
+    val margin: Int = 4
+) {
+    Normal(R.id.action_view_type_normal, R.layout.item_grid, R.string.view_type_normal),
+    Card(R.id.action_view_type_card, R.layout.item_card, R.string.view_type_card),
+    ColoredCard(R.id.action_view_type_colored_card, R.layout.item_card_color, R.string.view_type_colored_card),
+    Circle(R.id.action_view_type_circle, R.layout.item_grid_circle, R.string.view_type_circle),
+    Image(R.id.action_view_type_image, R.layout.item_image_gradient, R.string.view_type_image, 0);
 
     companion object {
         @Px

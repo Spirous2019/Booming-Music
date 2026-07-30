@@ -124,6 +124,8 @@ class AddToPlaylistDialog : BottomSheetDialogFragment() {
         val dialog = super.onCreateDialog(savedInstanceState)
         (dialog as? BottomSheetDialog)?.let {
             it.behavior.state = BottomSheetBehavior.STATE_EXPANDED
+            it.behavior.skipCollapsed = true
+            it.behavior.isFitToContents = true
         }
         return dialog
     }

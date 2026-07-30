@@ -26,9 +26,11 @@ import android.view.View
 import androidx.core.content.edit
 import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.GridLayoutManager
+import androidx.core.view.isVisible
 import com.mardous.booming.R
 import com.mardous.booming.core.model.GridViewType
 import com.mardous.booming.core.sort.PlaylistSortMode
+import com.mardous.booming.core.sort.SortMode
 import com.mardous.booming.data.local.room.PlaylistWithSongs
 import com.mardous.booming.extensions.navigation.playlistDetailArgs
 import com.mardous.booming.ui.IPlaylistCallback
@@ -59,10 +61,40 @@ class PlaylistListFragment : AbsRecyclerViewCustomGridSizeFragment<PlaylistAdapt
         get() = if (isGridMode) R.layout.item_playlist
         else R.layout.item_list
 
+    override fun getSortMode(): SortMode = PlaylistSortMode.AllPlaylists
+
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
+        val actionBtn = view.findViewById<com.google.android.material.button.MaterialButton>(R.id.header_action_button)
+        actionBtn?.isVisible = true
+        actionBtn?.setIconResource(R.drawable.ic_add_24dp)
+        actionBtn?.setOnClickListener {
+            val popup = androidx.appcompat.widget.PopupMenu(requireContext(), actionBtn)
+            popup.menu.add(0, 1, 0, R.string.new_playlist_title)
+            popup.menu.add(0, 2, 1, R.string.action_import_playlist)
+
+            com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment()
+                .setMenu(popup.menu) { itemId ->
+                    when (itemId) {
+                        1 -> CreatePlaylistDialog().show(childFragmentManager, "NEW_PLAYLIST")
+                        2 -> ImportPlaylistDialog().show(childFragmentManager, "IMPORT_PLAYLIST")
+                    }
+                }
+                .show(childFragmentManager, com.mardous.booming.ui.component.menu.MenuBottomSheetDialogFragment.TAG)
+        }
+
         libraryViewModel.getPlaylists().observe(viewLifecycleOwner) { playlists ->
-            adapter?.dataSet = playlists
+            val sortedPlaylists = with(PlaylistSortMode.AllPlaylists) { playlists.sorted() }
+            adapter?.dataSet = sortedPlaylists
+            setSubHeaderItemCount(sortedPlaylists.size, R.string.playlist_label, R.string.playlists_label)
+        }
+    }
+
+    override fun onSortModeChanged() {
+        libraryViewModel.getPlaylists().value?.let { playlists ->
+            val sortedPlaylists = with(PlaylistSortMode.AllPlaylists) { playlists.sorted() }
+            adapter?.dataSet = sortedPlaylists
+            setSubHeaderItemCount(sortedPlaylists.size, R.string.playlist_label, R.string.playlists_label)
         }
     }
 
@@ -106,33 +138,7 @@ class PlaylistListFragment : AbsRecyclerViewCustomGridSizeFragment<PlaylistAdapt
         adapter?.actionMode?.finish()
     }
 
-    override fun onCreateMenu(menu: Menu, inflater: MenuInflater) {
-        super.onCreateMenu(menu, inflater)
-        menu.removeItem(R.id.action_view_type)
-        menu.add(0, R.id.action_new_playlist, 0, R.string.new_playlist_title)
-        menu.add(0, R.id.action_import_playlist, 0, R.string.action_import_playlist)
-        PlaylistSortMode.AllPlaylists.createMenu(menu)
-    }
-
-    override fun onMenuItemSelected(item: MenuItem): Boolean {
-        if (PlaylistSortMode.AllPlaylists.sortItemSelected(item)) {
-            libraryViewModel.forceReload(ReloadType.Playlists)
-            return true
-        }
-        return when (item.itemId) {
-            R.id.action_new_playlist -> {
-                CreatePlaylistDialog()
-                    .show(childFragmentManager, "NEW_PLAYLIST")
-                true
-            }
-            R.id.action_import_playlist -> {
-                ImportPlaylistDialog().show(childFragmentManager, "IMPORT_PLAYLIST")
-                true
-            }
-            else -> super.onMenuItemSelected(item)
-        }
-    }
-
+    override fun showViewTypeInBottomSheet(): Boolean = false
     override fun getSavedViewType(): GridViewType {
         return GridViewType.Normal
     }

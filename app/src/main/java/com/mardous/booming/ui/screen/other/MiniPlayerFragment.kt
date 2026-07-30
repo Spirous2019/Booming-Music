@@ -65,6 +65,8 @@ class MiniPlayerFragment : Fragment(R.layout.fragment_mini_player),
         }
 
     private var disposable: Disposable? = null
+    private var lastSongId: Long = -1L
+    private var lastIsPlaying: Boolean? = null
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
@@ -73,11 +75,23 @@ class MiniPlayerFragment : Fragment(R.layout.fragment_mini_player),
         binding.progressBar.installWavyAnimatorCleanup()
         viewLifecycleOwner.launchAndRepeatWithViewLifecycle {
             playerViewModel.currentSongFlow.collect { currentSong ->
-                disposable = binding.image.songImage(currentSong)
-                binding.songTitle.isSelected = true
-                binding.songTitle.text = currentSong.title
-                binding.songArtist.isSelected = true
-                binding.songArtist.text = currentSong.displayArtistName()
+                if (lastSongId != currentSong.id) {
+                    lastSongId = currentSong.id
+                    disposable = binding.image.songImage(currentSong)
+                }
+                if (binding.songTitle.text != currentSong.title) {
+                    binding.songTitle.text = currentSong.title
+                }
+                val artistName = currentSong.displayArtistName()
+                if (binding.songArtist.text != artistName) {
+                    binding.songArtist.text = artistName
+                }
+                if (!binding.songTitle.isSelected) {
+                    binding.songTitle.isSelected = true
+                }
+                if (!binding.songArtist.isSelected) {
+                    binding.songArtist.isSelected = true
+                }
             }
         }
         viewLifecycleOwner.launchAndRepeatWithViewLifecycle {
@@ -86,14 +100,20 @@ class MiniPlayerFragment : Fragment(R.layout.fragment_mini_player),
                 playerViewModel.durationFlow
             ) { progress, duration -> ProgressState(progress, duration) }
                 .filter { progress -> progress.mayUpdateUI }
-                .collectLatest {
-                    binding.progressBar.max = it.total.toInt()
-                    binding.progressBar.setProgressCompat(it.progress.toInt(), true)
+                .collectLatest { progressState ->
+                    val maxProgress = progressState.total.toInt()
+                    if (binding.progressBar.max != maxProgress) {
+                        binding.progressBar.max = maxProgress
+                    }
+                    binding.progressBar.setProgressCompat(progressState.progress.toInt(), false)
                 }
         }
         viewLifecycleOwner.launchAndRepeatWithViewLifecycle {
             playerViewModel.isPlayingFlow.collect { isPlaying ->
-                updatePlayPause(isPlaying, buttonStyle)
+                if (lastIsPlaying != isPlaying) {
+                    lastIsPlaying = isPlaying
+                    updatePlayPause(isPlaying, buttonStyle)
+                }
             }
         }
         primaryColorSpan = textColorPrimary().toForegroundColorSpan()
@@ -162,6 +182,9 @@ class MiniPlayerFragment : Fragment(R.layout.fragment_mini_player),
 
     override fun onDestroyView() {
         disposable?.dispose()
+        disposable = null
+        lastSongId = -1L
+        lastIsPlaying = null
         super.onDestroyView()
         _binding = null
     }

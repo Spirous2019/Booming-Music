@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="48dp"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:focusable="true"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="12dp">
+
+    <com.google.android.material.textview.MaterialTextView
+        android:id="@+id/sort_title"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:textAppearance="?textAppearanceBodyLarge"
+        android:textColor="?attr/colorOnSurface"
+        tools:text="Date modified"/>
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/sort_arrow_icon"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:layout_marginEnd="8dp"
+        android:visibility="gone"
+        app:srcCompat="@drawable/ic_keyboard_arrow_up_24dp"
+        tools:visibility="visible"/>
+
+    <androidx.appcompat.widget.AppCompatImageView
+        android:id="@+id/sort_check_icon"
+        android:layout_width="20dp"
+        android:layout_height="20dp"
+        android:visibility="gone"
+        app:srcCompat="@drawable/ic_check_24dp"
+        tools:visibility="visible"/>
+
+</LinearLayout>
