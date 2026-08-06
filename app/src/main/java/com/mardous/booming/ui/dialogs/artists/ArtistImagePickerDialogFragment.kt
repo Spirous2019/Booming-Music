@@ -51,6 +51,14 @@ import kotlinx.coroutines.withContext
 import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
+enum class ImageSource(val title: String) {
+    Wikipedia("Wikipedia Gallery"),
+    FanartTv("Fanart.tv Portraits"),
+    DuckDuckGo("DuckDuckGo Web Search"),
+    Deezer("Deezer Portraits"),
+    ITunes("iTunes Portraits")
+}
+
 class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
 
     private val playerViewModel: PlayerViewModel by activityViewModel()
@@ -121,14 +129,14 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
 
     /**
      * Represents a candidate image in the picker grid.
-     * @param label The display label (artist name or album title)
-     * @param url The image URL (highest quality available)
-     * @param isPortrait true if this is an artist portrait, false if album cover
+     * @param label The display label (artist name or image title)
+     * @param url The image URL
+     * @param source The remote provider source category
      */
     private data class CandidateImage(
         val label: String,
         val url: String,
-        val isPortrait: Boolean
+        val source: ImageSource
     )
 
     @Composable
@@ -148,56 +156,69 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                 val seenHashes = mutableSetOf<String>()
 
                 withContext(Dispatchers.IO) {
-                    // Fetch artist portraits and album covers in parallel
-                    val artistDeferred = async {
+                    // Fetch Wikipedia, Fanart.tv, DuckDuckGo, Deezer, and iTunes concurrently
+                    val wikiDeferred = async {
+                        try { repository.wikimediaArtistPortraits(resolvedName) } catch (_: Exception) { emptyList() }
+                    }
+                    val fanartDeferred = async {
+                        try { repository.fanartTvArtistPortraits(resolvedName) } catch (_: Exception) { emptyList() }
+                    }
+                    val duckDeferred = async {
+                        try { repository.duckDuckGoArtistPortraits(resolvedName) } catch (_: Exception) { emptyList() }
+                    }
+                    val deezerDeferred = async {
                         try { repository.deezerArtist(resolvedName, 30, 0) } catch (_: Exception) { null }
                     }
-                    val albumDeferred = async {
-                        try { repository.deezerAlbumsByArtist(resolvedName, 25) } catch (_: Exception) { null }
+                    val itunesDeferred = async {
+                        try { repository.iTunesArtist(resolvedName) } catch (_: Exception) { null }
                     }
 
-                    val deezerResult = artistDeferred.await()
-                    val albumResult = albumDeferred.await()
+                    val wikiResults = wikiDeferred.await()
+                    val fanartResults = fanartDeferred.await()
+                    val duckResults = duckDeferred.await()
+                    val deezerResult = deezerDeferred.await()
+                    val itunesResult = itunesDeferred.await()
 
-                    // 1. Add artist portraits (filtered by name match)
+                    // 1. Wikipedia Gallery Photos
+                    for ((title, url) in wikiResults) {
+                        if (url.isNotBlank() && url.startsWith("http") && seenHashes.add(url)) {
+                            allCandidates.add(CandidateImage(title, url, ImageSource.Wikipedia))
+                        }
+                    }
+
+                    // 2. Fanart.tv High-Res Portraits
+                    for ((label, url) in fanartResults) {
+                        if (url.isNotBlank() && url.startsWith("http") && seenHashes.add(url)) {
+                            allCandidates.add(CandidateImage(label, url, ImageSource.FanartTv))
+                        }
+                    }
+
+                    // 3. DuckDuckGo Web Portrait Photos
+                    for ((label, url) in duckResults) {
+                        if (url.isNotBlank() && url.startsWith("http") && seenHashes.add(url)) {
+                            allCandidates.add(CandidateImage(label, url, ImageSource.DuckDuckGo))
+                        }
+                    }
+
+                    // 4. Deezer Artist Avatar
                     if (deezerResult != null) {
                         val filtered = deezerResult.getFilteredCandidates(resolvedName)
                         for ((name, url) in filtered) {
-                            val hash = extractImageHash(url)
-                            if (hash == null || seenHashes.add(hash)) {
-                                allCandidates.add(CandidateImage(name, url, isPortrait = true))
+                            if (url.isNotBlank() && url.startsWith("http") && !url.contains("/images/artist//")) {
+                                val hash = extractImageHash(url)
+                                if (hash == null || seenHashes.add(hash)) {
+                                    allCandidates.add(CandidateImage(name, url, ImageSource.Deezer))
+                                }
                             }
                         }
                     }
 
-                    // 2. Add album covers (filtered by artist name)
-                    if (albumResult != null) {
-                        val normRequested = resolvedName.normalize().lowercase()
-                        val primaryName = resolvedName.split(Regex("(?i)\\s+(feat\\.|ft\\.|with|&|,|/)\\s+"))
-                            .firstOrNull()?.trim() ?: resolvedName
-                        val normPrimary = primaryName.normalize().lowercase()
-
-                        for (album in albumResult.data) {
-                            val albumArtistName = album.artist?.name ?: continue
-                            val normAlbumArtist = albumArtistName.normalize().lowercase()
-
-                            // Check if this album belongs to the searched artist
-                            val isMatch = normAlbumArtist == normRequested ||
-                                    normAlbumArtist == normPrimary ||
-                                    normAlbumArtist.startsWith(normPrimary) ||
-                                    normPrimary.startsWith(normAlbumArtist) ||
-                                    (normPrimary.length >= 5 && normAlbumArtist.contains(normPrimary)) ||
-                                    DeezerArtist.JW_SIMILARITY.apply(normAlbumArtist, normRequested) >= 0.80
-
-                            if (!isMatch) continue
-
-                            val coverUrl = album.xlImage ?: album.largeImage ?: album.mediumImage ?: album.image
-                            if (coverUrl.isNullOrBlank() || coverUrl.contains("/images/cover//")) continue
-
-                            // Deduplicate by cover image hash
-                            val hash = extractCoverHash(coverUrl)
-                            if (hash == null || seenHashes.add(hash)) {
-                                allCandidates.add(CandidateImage(album.title, coverUrl, isPortrait = false))
+                    // 5. iTunes Artist Portraits
+                    if (itunesResult != null) {
+                        val filtered = itunesResult.getFilteredCandidates(resolvedName)
+                        for ((name, url) in filtered) {
+                            if (url.isNotBlank() && url.startsWith("http") && seenHashes.add(url)) {
+                                allCandidates.add(CandidateImage(name, url, ImageSource.ITunes))
                             }
                         }
                     }
@@ -214,12 +235,12 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(horizontal = 20.dp, vertical = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             Text(
                 text = stringResource(R.string.change_artist_image_title),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleLarge,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface
             )
@@ -228,25 +249,41 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                 value = searchQuery,
                 onValueChange = { searchQuery = it },
                 label = { Text(stringResource(R.string.search_artist_images_hint)) },
+                leadingIcon = {
+                    Icon(
+                        painter = painterResource(R.drawable.ic_search_24dp),
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                },
                 singleLine = true,
+                shape = RoundedCornerShape(14.dp),
                 modifier = Modifier.fillMaxWidth()
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(10.dp)
             ) {
                 Button(
                     onClick = { pickImageLauncher.launch("image/*") },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_image_24dp),
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.choose_from_device))
+                    Text(
+                        text = stringResource(R.string.choose_from_device),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
 
                 OutlinedButton(
@@ -256,15 +293,22 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                             dismissAllowingStateLoss()
                         }
                     },
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 10.dp),
+                    shape = RoundedCornerShape(12.dp),
                     modifier = Modifier.weight(1f)
                 ) {
                     Icon(
                         painter = painterResource(R.drawable.ic_delete_24dp),
                         contentDescription = null,
-                        modifier = Modifier.size(18.dp)
+                        modifier = Modifier.size(16.dp)
                     )
                     Spacer(Modifier.width(6.dp))
-                    Text(stringResource(R.string.remove_image_title))
+                    Text(
+                        text = stringResource(R.string.remove_image_title),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        style = MaterialTheme.typography.labelLarge
+                    )
                 }
             }
 
@@ -291,8 +335,11 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                     )
                 }
             } else {
-                val portraits = candidates.filter { it.isPortrait }
-                val albumCovers = candidates.filter { !it.isPortrait }
+                val wikiCandidates = candidates.filter { it.source == ImageSource.Wikipedia }
+                val fanartCandidates = candidates.filter { it.source == ImageSource.FanartTv }
+                val duckCandidates = candidates.filter { it.source == ImageSource.DuckDuckGo }
+                val deezerCandidates = candidates.filter { it.source == ImageSource.Deezer }
+                val itunesCandidates = candidates.filter { it.source == ImageSource.ITunes }
 
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(3),
@@ -302,38 +349,84 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // Artist Portraits section
-                    if (portraits.isNotEmpty()) {
+                    // 1. Wikipedia Section
+                    if (wikiCandidates.isNotEmpty()) {
                         item(span = { GridItemSpan(3) }) {
-                            Text(
-                                text = stringResource(R.string.artist_portraits_label),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            )
+                            CategoryHeader(ImageSource.Wikipedia.title, wikiCandidates.size)
                         }
-                        items(portraits) { candidate ->
+                        items(wikiCandidates) { candidate ->
                             CandidateImageCard(candidate, currentArtist, scope)
                         }
                     }
 
-                    // Album Covers section
-                    if (albumCovers.isNotEmpty()) {
+                    // 2. Fanart.tv Section
+                    if (fanartCandidates.isNotEmpty()) {
                         item(span = { GridItemSpan(3) }) {
-                            Text(
-                                text = stringResource(R.string.album_covers_label),
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.padding(vertical = 4.dp)
-                            )
+                            CategoryHeader(ImageSource.FanartTv.title, fanartCandidates.size)
                         }
-                        items(albumCovers) { candidate ->
+                        items(fanartCandidates) { candidate ->
+                            CandidateImageCard(candidate, currentArtist, scope)
+                        }
+                    }
+
+                    // 3. DuckDuckGo Section
+                    if (duckCandidates.isNotEmpty()) {
+                        item(span = { GridItemSpan(3) }) {
+                            CategoryHeader(ImageSource.DuckDuckGo.title, duckCandidates.size)
+                        }
+                        items(duckCandidates) { candidate ->
+                            CandidateImageCard(candidate, currentArtist, scope)
+                        }
+                    }
+
+                    // 4. Deezer Section
+                    if (deezerCandidates.isNotEmpty()) {
+                        item(span = { GridItemSpan(3) }) {
+                            CategoryHeader(ImageSource.Deezer.title, deezerCandidates.size)
+                        }
+                        items(deezerCandidates) { candidate ->
+                            CandidateImageCard(candidate, currentArtist, scope)
+                        }
+                    }
+
+                    // 5. iTunes Section
+                    if (itunesCandidates.isNotEmpty()) {
+                        item(span = { GridItemSpan(3) }) {
+                            CategoryHeader(ImageSource.ITunes.title, itunesCandidates.size)
+                        }
+                        items(itunesCandidates) { candidate ->
                             CandidateImageCard(candidate, currentArtist, scope)
                         }
                     }
                 }
+            }
+        }
+    }
+
+    @Composable
+    private fun CategoryHeader(title: String, count: Int) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.padding(top = 10.dp, bottom = 4.dp)
+        ) {
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(Modifier.width(8.dp))
+            Surface(
+                shape = androidx.compose.foundation.shape.CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Text(
+                    text = count.toString(),
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+                )
             }
         }
     }

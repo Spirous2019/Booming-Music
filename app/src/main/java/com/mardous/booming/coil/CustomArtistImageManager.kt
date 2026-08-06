@@ -173,6 +173,29 @@ class CustomArtistImageManager(private val context: Context) {
         } ?: false
     }
 
+    suspend fun resetAllArtistImages(): Boolean = withContext(Dispatchers.IO) {
+        try {
+            imagesPreferences.edit(true) { clear() }
+            signaturesPreferences.edit(true) { clear() }
+
+            FileUtil.customArtistImagesDirectory()?.listFiles()?.forEach { file ->
+                file.deleteQuietly()
+            }
+
+            try {
+                val loader = SingletonImageLoader.get(context)
+                loader.memoryCache?.clear()
+                loader.diskCache?.clear()
+            } catch (_: Exception) {}
+
+            contentResolver.notifyChange(Artists.EXTERNAL_CONTENT_URI, null)
+            true
+        } catch (e: Exception) {
+            Log.e("CustomArtistImageManager", "Failed to reset all artist images", e)
+            false
+        }
+    }
+
     private fun Artist.updateHasImage(hasImage: Boolean) {
         updateHasImage(getFileName(), name, hasImage)
     }

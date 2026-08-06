@@ -45,6 +45,7 @@ import com.mardous.booming.data.model.search.SearchQuery
 import com.mardous.booming.data.remote.deezer.model.DeezerAlbum
 import com.mardous.booming.data.remote.deezer.model.DeezerArtist
 import com.mardous.booming.data.remote.deezer.model.DeezerTrack
+import com.mardous.booming.data.remote.itunes.model.iTunesArtist
 import com.mardous.booming.data.remote.lastfm.model.LastFmAlbum
 import com.mardous.booming.data.remote.lastfm.model.LastFmArtist
 import kotlinx.coroutines.flow.Flow
@@ -147,6 +148,10 @@ interface Repository {
     suspend fun deezerArtist(name: String, limit: Int, index: Int): DeezerArtist?
     suspend fun deezerAlbum(artist: String, name: String): DeezerAlbum?
     suspend fun deezerAlbumsByArtist(artistName: String, limit: Int = 25): DeezerAlbum?
+    suspend fun iTunesArtist(name: String): iTunesArtist?
+    suspend fun wikimediaArtistPortraits(name: String): List<Pair<String, String>>
+    suspend fun duckDuckGoArtistPortraits(name: String): List<Pair<String, String>>
+    suspend fun fanartTvArtistPortraits(name: String): List<Pair<String, String>>
     suspend fun artistInfo(name: String, lang: String?, cache: String?): LastFmArtist?
     suspend fun albumInfo(artist: String, album: String, lang: String?): LastFmAlbum?
     suspend fun contributors(): List<Contribution>
@@ -462,6 +467,18 @@ class RealRepository(
 
     override suspend fun deezerAlbumsByArtist(artistName: String, limit: Int) =
         networkRepository.deezerAlbumsByArtist(artistName, limit)
+
+    override suspend fun iTunesArtist(name: String) =
+        networkRepository.iTunesArtist(name)
+
+    override suspend fun wikimediaArtistPortraits(name: String) =
+        networkRepository.wikimediaArtistPortraits(name)
+
+    override suspend fun duckDuckGoArtistPortraits(name: String) =
+        networkRepository.duckDuckGoArtistPortraits(name)
+
+    override suspend fun fanartTvArtistPortraits(name: String) =
+        networkRepository.fanartTvArtistPortraits(name)
 
     override suspend fun artistInfo(name: String, lang: String?, cache: String?) =
         networkRepository.artistInfo(name, lang, cache)

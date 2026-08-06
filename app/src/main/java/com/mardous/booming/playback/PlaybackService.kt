@@ -321,6 +321,7 @@ class PlaybackService :
     }
 
     override fun onTaskRemoved(rootIntent: Intent?) {
+        persistentStorage.saveStateSync(savePlaylist = true)
         if ((!isPlaybackOngoing && !isInTransientFocusLoss) ||
             preferences.getBoolean(STOP_WHEN_CLOSED_FROM_RECENTS, false)) {
             pauseAllPlayersAndStopSelf()
@@ -328,6 +329,7 @@ class PlaybackService :
     }
 
     override fun onDestroy() {
+        persistentStorage.saveStateSync(savePlaylist = true)
         super.onDestroy()
         if (bluetoothConnectedRegistered) {
             unregisterReceiver(bluetoothReceiver)

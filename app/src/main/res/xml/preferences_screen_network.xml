@@ -51,6 +51,13 @@
             app:layout="@layout/list_item_view"
             app:key="preferred_image_size"/>
 
+        <Preference
+            app:iconSpaceReserved="true"
+            app:title="@string/reset_artist_images_title"
+            app:summary="@string/reset_artist_images_summary"
+            app:layout="@layout/list_item_view"
+            app:key="reset_artist_images"/>
+
     </PreferenceCategory>
 
     <PreferenceCategory

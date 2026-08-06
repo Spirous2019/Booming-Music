@@ -74,6 +74,9 @@ fun jsonHttpClient(okHttpClient: OkHttpClient) = HttpClient(OkHttp) {
         json(json)
         json(json, ContentType.Text.Html)
         json(json, ContentType.Text.Plain)
+        json(json, ContentType.parse("text/javascript"))
+        json(json, ContentType.parse("application/javascript"))
+        json(json, ContentType.Any)
     }
     install(ContentEncoding) {
         gzip()

@@ -87,14 +87,21 @@ class DeezerArtist(
         for (artist in result) {
             val normArtist = artist.artistName.normalize().lowercase()
 
-            // Check if this artist matches the query
-            val isExactOrPrefix = normArtist == normRequested || normArtist == normPrimary ||
-                    normArtist.startsWith(normPrimary) || normPrimary.startsWith(normArtist)
-            val isSubstringMatch = (normPrimary.length >= 5 && normArtist.contains(normPrimary)) ||
-                    (normArtist.length >= 5 && normRequested.contains(normArtist))
+            // Strict artist matching
+            val isExactMatch = normArtist == normRequested || normArtist == normPrimary
             val jwScore = JW_SIMILARITY.apply(normArtist, normRequested)
 
-            val isMatch = isExactOrPrefix || (isSubstringMatch && jwScore >= 0.60) || jwScore >= 0.70
+            // Reject items that append extra artist names/words (e.g. "2PAC HVK")
+            val isExtraWord = normArtist.length > normRequested.length + 3
+
+            // Filter out tribute, karaoke, piano, cover, beatzz noise entries
+            val isNoiseKeyword = normArtist.contains("piano") || normArtist.contains("karaoke") ||
+                    normArtist.contains("tribute") || normArtist.contains("cover") ||
+                    normArtist.contains("beatzz") || normArtist.contains("ensemble") ||
+                    normArtist.contains("instrumental") || normArtist.contains("string quartet") ||
+                    normArtist.contains("orchestra")
+
+            val isMatch = (isExactMatch || (jwScore >= 0.92 && !isExtraWord)) && !isNoiseKeyword
 
             if (!isMatch) continue
 

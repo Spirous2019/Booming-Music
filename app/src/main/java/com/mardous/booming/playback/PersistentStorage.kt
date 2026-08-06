@@ -180,34 +180,38 @@ class PersistentStorage(
                     }
                 }
 
-                val shuffleOrder = if (shuffleModeEnabled) {
+                val shuffleOrder: ShuffleOrder? = if (shuffleModeEnabled) {
                     if (serializedOrder != null) {
                         val data = serializedOrder.data
                         if (data == null || items.mediaItems.size != data.size) {
-                            Log.e(TAG, "Previous shuffle order is no longer valid")
-                            preferences.edit(commit = true) { putString(SHUFFLE_ORDER, null) }
-                            null
+                            Log.w(TAG, "Previous shuffle order size mismatch, recreating shuffle order")
+                            if (items.mediaItems.isNotEmpty()) {
+                                ImprovedShuffleOrder(
+                                    items.startIndex.coerceIn(0, items.mediaItems.lastIndex),
+                                    items.mediaItems.size,
+                                    kotlin.random.Random.nextLong()
+                                )
+                            } else null
                         } else {
                             serializedOrder.toShuffleOrder(
                                 firstIndex = items.startIndex,
                                 length = items.mediaItems.size
                             )
                         }
-                    } else {
-                        ShuffleOrder.UnshuffledShuffleOrder(items.mediaItems.size)
-                    }
-                } else {
-                    if (serializedOrder != null) {
-                        Log.e(TAG, "Found orphan shuffle order")
-                        preferences.edit(commit = true) { putString(SHUFFLE_ORDER, null) }
-                    }
-                    null
-                }
+                    } else if (items.mediaItems.isNotEmpty()) {
+                        Log.w(TAG, "No serialized shuffle order found, creating default shuffle order for enabled shuffle")
+                        ImprovedShuffleOrder(
+                            items.startIndex.coerceIn(0, items.mediaItems.lastIndex),
+                            items.mediaItems.size,
+                            kotlin.random.Random.nextLong()
+                        )
+                    } else null
+                } else null
 
                 withContext(Dispatchers.Main) {
                     // Apply repeat/shuffle modes on main thread
                     player.repeatMode = repeatMode
-                    player.shuffleModeEnabled = shuffleModeEnabled && shuffleOrder != null
+                    player.shuffleModeEnabled = shuffleModeEnabled
 
                     dispatchItems(callback, items, shuffleOrder)
                 }
@@ -222,6 +226,56 @@ class PersistentStorage(
         } finally {
             // Always mark as restored to unblock future listeners
             state.store(RestorationState.Restored)
+        }
+    }
+
+    /**
+     * Synchronously saves the current player state to disk without debounce delay.
+     * Must be called on service teardown (onDestroy / onTaskRemoved).
+     */
+    fun saveStateSync(savePlaylist: Boolean = false) {
+        if (restorationState == RestorationState.Restoring) return
+
+        try {
+            val repeatMode = player.repeatMode
+            val shuffleModeEnabled = player.shuffleModeEnabled
+            val position = player.currentMediaItemIndex
+            val positionInTrack = player.currentPosition
+            val mediaItems = player.mediaItems
+            val currentShuffleOrder = player.exoPlayer.shuffleOrder
+            val shuffleOrder = when (currentShuffleOrder) {
+                is ImprovedShuffleOrder -> SerializedOrder.serializedFromOrder(currentShuffleOrder)
+                else -> {
+                    if (shuffleModeEnabled && mediaItems.isNotEmpty()) {
+                        val fallbackOrder = ImprovedShuffleOrder(
+                            position.coerceIn(0, mediaItems.lastIndex),
+                            mediaItems.size,
+                            kotlin.random.Random.nextLong()
+                        )
+                        player.exoPlayer.shuffleOrder = fallbackOrder
+                        SerializedOrder.serializedFromOrder(fallbackOrder)
+                    } else null
+                }
+            }
+
+            preferences.edit(commit = true) {
+                putInt(REPEAT_MODE, repeatMode)
+                putBoolean(SHUFFLE_MODE, shuffleModeEnabled)
+                putString(SHUFFLE_ORDER, shuffleOrder?.toString())
+                putInt(LAST_INDEX, position)
+                putLong(POSITION_IN_TRACK, positionInTrack)
+            }
+
+            if (savePlaylist && mediaItems.isNotEmpty()) {
+                val queueItems = mediaItems.mapIndexed { index, item ->
+                    QueueEntity(id = item.mediaId, order = index)
+                }
+                kotlinx.coroutines.runBlocking(Dispatchers.IO) {
+                    queueDao.replaceQueue(queueItems)
+                }
+            }
+        } catch (e: Throwable) {
+            Log.e(TAG, "Failed to write state synchronously to disk", e)
         }
     }
 
@@ -252,9 +306,20 @@ class PersistentStorage(
                 val position = player.currentMediaItemIndex
                 val positionInTrack = player.currentPosition
                 val mediaItems = player.mediaItems
-                val shuffleOrder = when (val shuffleOrder = player.exoPlayer.shuffleOrder) {
-                    is ImprovedShuffleOrder -> SerializedOrder.serializedFromOrder(shuffleOrder)
-                    else -> null
+                val currentShuffleOrder = player.exoPlayer.shuffleOrder
+                val shuffleOrder = when (currentShuffleOrder) {
+                    is ImprovedShuffleOrder -> SerializedOrder.serializedFromOrder(currentShuffleOrder)
+                    else -> {
+                        if (shuffleModeEnabled && mediaItems.isNotEmpty()) {
+                            val fallbackOrder = ImprovedShuffleOrder(
+                                position.coerceIn(0, mediaItems.lastIndex),
+                                mediaItems.size,
+                                kotlin.random.Random.nextLong()
+                            )
+                            player.exoPlayer.shuffleOrder = fallbackOrder
+                            SerializedOrder.serializedFromOrder(fallbackOrder)
+                        } else null
+                    }
                 }
 
                 // Write state asynchronously

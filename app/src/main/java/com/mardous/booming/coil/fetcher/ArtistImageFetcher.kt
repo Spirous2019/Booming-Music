@@ -60,6 +60,42 @@ class ArtistImageFetcher(
         if (!image.isNameUnknown && NetworkFeature.Images.Artists.isAvailable(options.context)) {
             val resolvedName = com.mardous.booming.data.remote.deezer.model.DeezerArtist.ARTIST_ALIASES[image.name.trim().lowercase()] ?: image.name
             val cleanName = resolvedName.split(Regex("(?i)\\s+(feat\\.|ft\\.|with|&|,|/)\\s+")).firstOrNull()?.trim() ?: resolvedName
+
+            // 1. Try Wikipedia Gallery Photos (Verified authentic press/concert photo)
+            val wikiPortraits = repository.wikimediaArtistPortraits(cleanName).ifEmpty { repository.wikimediaArtistPortraits(resolvedName) }
+            val wikiUrl = wikiPortraits.firstOrNull()?.second
+            if (wikiUrl != null && wikiUrl.startsWith("http")) {
+                val saved = customImageManager.setCustomImageFromUrl(image, wikiUrl)
+                if (saved) {
+                    val imageFile = customImageManager.getCustomImageFile(image)
+                    if (imageFile?.isFile == true) {
+                        return SourceFetchResult(
+                            source = ImageSource(imageFile.toOkioPath(), options.fileSystem),
+                            mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(imageFile.extension),
+                            dataSource = DataSource.DISK
+                        )
+                    }
+                }
+            }
+
+            // 2. Try DuckDuckGo Web Portrait Search
+            val duckPortraits = repository.duckDuckGoArtistPortraits(cleanName).ifEmpty { repository.duckDuckGoArtistPortraits(resolvedName) }
+            val duckUrl = duckPortraits.firstOrNull()?.second
+            if (duckUrl != null && duckUrl.startsWith("http")) {
+                val saved = customImageManager.setCustomImageFromUrl(image, duckUrl)
+                if (saved) {
+                    val imageFile = customImageManager.getCustomImageFile(image)
+                    if (imageFile?.isFile == true) {
+                        return SourceFetchResult(
+                            source = ImageSource(imageFile.toOkioPath(), options.fileSystem),
+                            mimeType = MimeTypeMap.getSingleton().getMimeTypeFromExtension(imageFile.extension),
+                            dataSource = DataSource.DISK
+                        )
+                    }
+                }
+            }
+
+            // 3. Fallback to Deezer Avatar
             var pageIndex = 0
             var revisedResults = 0
             var deezerArtist = repository.deezerArtist(cleanName, MAX_RESULT_PER_PAGE, pageIndex)
@@ -69,7 +105,7 @@ class ArtistImageFetcher(
             val total = min(deezerArtist?.total ?: 0, MAX_RESULT_COUNT)
             while (deezerArtist != null && revisedResults < total) {
                 val (matched, imageUrl) = deezerArtist.getBestImage(resolvedName, imageSize)
-                if (matched && imageUrl != null) {
+                if (matched && imageUrl != null && imageUrl.startsWith("http") && !imageUrl.contains("/images/artist//")) {
                     val saved = customImageManager.setCustomImageFromUrl(image, imageUrl)
                     if (saved) {
                         val imageFile = customImageManager.getCustomImageFile(image)
@@ -81,10 +117,6 @@ class ArtistImageFetcher(
                             )
                         }
                     }
-                    val data = loader.components.map(imageUrl, options)
-                    val output = loader.components.newFetcher(data, options, loader)
-                    val (fetcher) = checkNotNull(output) { "no supported fetcher for $imageUrl" }
-                    return fetcher.fetch()
                 }
                 revisedResults += deezerArtist.result.size
                 if (revisedResults < total) {

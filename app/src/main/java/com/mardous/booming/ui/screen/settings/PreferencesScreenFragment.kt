@@ -37,9 +37,11 @@ import androidx.preference.ListPreference
 import androidx.preference.Preference
 import androidx.preference.PreferenceFragmentCompat
 import coil3.SingletonImageLoader
+import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.mardous.booming.BuildConfig
 import com.mardous.booming.R
 import com.mardous.booming.coil.CoverProvider
+import com.mardous.booming.coil.CustomArtistImageManager
 import com.mardous.booming.core.model.lyrics.LyricsViewSettings
 import com.mardous.booming.data.local.room.InclExclDao
 import com.mardous.booming.data.model.network.ScrobblingService
@@ -158,6 +160,7 @@ open class PreferenceScreenFragment : PreferenceFragmentCompat(),
     private val libraryViewModel: LibraryViewModel by activityViewModel()
     private val lyricsViewModel: LyricsViewModel by activityViewModel()
     private val updateViewModel: UpdateViewModel by activityViewModel()
+    private val customArtistImageManager: CustomArtistImageManager by inject()
 
     private val importFontLauncher: ActivityResultLauncher<Array<String>> =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri: Uri? ->
@@ -429,6 +432,10 @@ open class PreferenceScreenFragment : PreferenceFragmentCompat(),
                 findActivityNavController(R.id.fragment_container).navigate(R.id.nav_about)
                 true
             }
+            preference.key == "reset_artist_images" -> {
+                showResetArtistImagesConfirmationDialog()
+                true
+            }
             else -> super.onPreferenceTreeClick(preference)
         }
     }
@@ -498,6 +505,22 @@ open class PreferenceScreenFragment : PreferenceFragmentCompat(),
         } catch (e: Exception) {
             Log.e("Settings", "Failed to clear image loader cache", e)
         }
+    }
+
+    private fun showResetArtistImagesConfirmationDialog() {
+        MaterialAlertDialogBuilder(requireContext())
+            .setTitle(R.string.reset_artist_images_title)
+            .setMessage(R.string.reset_artist_images_confirm_message)
+            .setPositiveButton(R.string.reset) { _, _ ->
+                lifecycleScope.launch {
+                    val success = customArtistImageManager.resetAllArtistImages()
+                    if (success) {
+                        showToast(R.string.reset_artist_images_success)
+                    }
+                }
+            }
+            .setNegativeButton(android.R.string.cancel, null)
+            .show()
     }
 
     private fun updateSearchState(preference: ProgressIndicatorPreference?, lastUpdateSearch: Long) {

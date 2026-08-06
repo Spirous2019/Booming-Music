@@ -78,18 +78,9 @@ class MiniPlayerFragment : Fragment(R.layout.fragment_mini_player),
                 if (lastSongId != currentSong.id) {
                     lastSongId = currentSong.id
                     disposable = binding.image.songImage(currentSong)
-                }
-                if (binding.songTitle.text != currentSong.title) {
                     binding.songTitle.text = currentSong.title
-                }
-                val artistName = currentSong.displayArtistName()
-                if (binding.songArtist.text != artistName) {
-                    binding.songArtist.text = artistName
-                }
-                if (!binding.songTitle.isSelected) {
+                    binding.songArtist.text = currentSong.displayArtistName()
                     binding.songTitle.isSelected = true
-                }
-                if (!binding.songArtist.isSelected) {
                     binding.songArtist.isSelected = true
                 }
             }

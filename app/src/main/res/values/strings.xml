@@ -1029,5 +1029,10 @@
     <string name="no_images_found">No images found</string>
     <string name="artist_portraits_label">Artist portraits</string>
     <string name="album_covers_label">Album covers</string>
+    <string name="reset_artist_images_title">Reset all artist images to automatic</string>
+    <string name="reset_artist_images_summary">Deletes all custom and cached artist images and resets them to auto-assign automatically</string>
+    <string name="reset_artist_images_confirm_message">Are you sure you want to reset all artist images? This will delete all custom and cached artist photos and re-fetch them automatically online.</string>
+    <string name="reset_artist_images_success">All artist images reset to automatic</string>
+    <string name="reset">Reset</string>
 </resources>
 

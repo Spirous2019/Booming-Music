@@ -200,7 +200,7 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
                 val currentFragment = currentFragment(R.id.fragment_container)
                 if (currentFragment !is LyricsEditorFragment &&
                     currentFragment !is PlayInfoFragment) {
-                    hideBottomSheet(queue.isEmpty())
+                    hideBottomSheet(hide = queue.isEmpty(), animate = false)
                 }
             }
         }
@@ -368,7 +368,7 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
                 slidingPanel.elevation = 0f
                 binding.navigationViewContainer?.elevation = 5f
                 if (isBottomNavVisible) {
-                    if (animate) {
+                    if (animate && kotlin.math.abs(bottomSheetBehavior.peekHeight - heightOfBarWithTabs) > 4) {
                         bottomSheetBehavior.peekHeightAnimate(heightOfBarWithTabs)
                     } else {
                         bottomSheetBehavior.peekHeight = heightOfBarWithTabs
@@ -385,7 +385,7 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
                         )
                     )
                 } else {
-                    if (animate) {
+                    if (animate && kotlin.math.abs(bottomSheetBehavior.peekHeight - heightOfBar) > 4) {
                         bottomSheetBehavior.peekHeightAnimate(heightOfBar).doOnEnd {
                             slidingPanel.bringToFront()
                         }
