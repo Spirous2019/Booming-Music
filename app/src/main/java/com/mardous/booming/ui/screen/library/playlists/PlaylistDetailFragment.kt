@@ -68,6 +68,9 @@ import com.mardous.booming.util.Preferences
 import org.koin.androidx.viewmodel.ext.android.viewModel
 import org.koin.core.parameter.parametersOf
 
+import com.mardous.booming.core.sort.SongSortMode
+import com.mardous.booming.ui.dialogs.SortBottomSheetDialogFragment
+
 /**
  * @author Christians M. A. (mardous)
  */
@@ -83,6 +86,7 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
     private val binding get() = _binding!!
 
     private var playlist: PlaylistWithSongs = PlaylistWithSongs.Empty
+    private var rawPlaylistSongs: List<Song> = emptyList()
 
     private var playlistSongAdapter: PlaylistSongAdapter? = null
     private var wrappedAdapter: RecyclerView.Adapter<*>? = null
@@ -104,6 +108,7 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
 
         setupButtons()
         setupRecyclerView()
+        setupSubHeader()
 
         materialSharedAxis(view)
         view.applyHorizontalWindowInsets()
@@ -111,8 +116,6 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
         binding.header.image.removeHorizontalMarginIfRequired()
 
         setSupportActionBar(binding.toolbar)
-        setupToolbarOverflowMenu()
-        //binding.collapsingAppBarLayout.setupStatusBarScrim(requireContext())
 
         libraryViewModel.getMiniPlayerMargin().observe(viewLifecycleOwner) {
             binding.recyclerView.updatePadding(bottom = it.getWithSpace())
@@ -135,14 +138,48 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
         }
         detailViewModel.getSongs().observe(viewLifecycleOwner) {
             binding.progressIndicator.hide()
-            val sortedSongs = with(com.mardous.booming.core.sort.SongSortMode.PlaylistSongs) { it.toSongs().sorted() }
-            playlistSongAdapter?.dataSet = sortedSongs
+            rawPlaylistSongs = it.toSongs()
+            applySortAndSubmitList(rawPlaylistSongs)
+            val count = it.size
+            val label = resources.getQuantityString(R.plurals.songs, count, count)
+            binding.subHeader.itemCountText.text = label
         }
         detailViewModel.playlistExists().observe(viewLifecycleOwner) {
             if (!it) {
                 findNavController().navigateUp()
             }
         }
+    }
+
+    private fun setupSubHeader() {
+        binding.subHeader.sortButton.setOnClickListener {
+            val dialog = SortBottomSheetDialogFragment.newInstance(SongSortMode.PlaylistSongs) {
+                updateSubHeaderSortText()
+                applySortAndSubmitList()
+            }
+            dialog.show(childFragmentManager, SortBottomSheetDialogFragment.TAG)
+        }
+        updateSubHeaderSortText()
+    }
+
+    private fun updateSubHeaderSortText() {
+        val mode = SongSortMode.PlaylistSongs
+        val activeItem = mode.keys.find { it.key == mode.selectedKey }
+        if (activeItem != null) {
+            binding.subHeader.sortText.setText(activeItem.title)
+            binding.subHeader.sortArrow.setImageResource(
+                if (mode.selectedDescending) R.drawable.ic_keyboard_arrow_down_24dp
+                else R.drawable.ic_keyboard_arrow_up_24dp
+            )
+        }
+    }
+
+    private fun applySortAndSubmitList(rawSongs: List<Song> = rawPlaylistSongs) {
+        if (rawSongs.isEmpty()) return
+        val sortedSongs = with(SongSortMode.PlaylistSongs) { rawSongs.sorted() }
+        playlistSongAdapter?.dataSet = sortedSongs
+        binding.recyclerView.adapter?.notifyItemRangeChanged(0, sortedSongs.size)
+        updateSubHeaderSortText()
     }
 
     private fun checkIsEmpty() {
@@ -175,7 +212,11 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
             itemLayoutRes = R.layout.item_list,
             isLockDrag = Preferences.lockedPlaylists,
             callback = this
-        )
+        ).apply {
+            onSortResetToCustom = {
+                updateSubHeaderSortText()
+            }
+        }
         recyclerViewDragDropManager = RecyclerViewDragDropManager().also { dragDropManager ->
             wrappedAdapter = dragDropManager.createWrappedAdapter(playlistSongAdapter!!)
         }
@@ -195,20 +236,12 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
         menuInflater.inflate(R.menu.menu_playlist_detail_toolbar, menu)
-        com.mardous.booming.core.sort.SongSortMode.PlaylistSongs.createMenu(menu)
         if (!isLandscape()) {
             menu.removeItem(R.id.action_search)
         }
     }
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
-        if (com.mardous.booming.core.sort.SongSortMode.PlaylistSongs.sortItemSelected(menuItem)) {
-            detailViewModel.getSongs().value?.let {
-                val sortedSongs = with(com.mardous.booming.core.sort.SongSortMode.PlaylistSongs) { it.toSongs().sorted() }
-                playlistSongAdapter?.dataSet = sortedSongs
-            }
-            return true
-        }
         return when (menuItem.itemId) {
             android.R.id.home -> {
                 findNavController().navigateUp()
@@ -294,19 +327,9 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
         _binding = null
     }
 
-    private fun setupToolbarOverflowMenu() {
-        binding.toolbar.post {
-            val overflowButton = binding.toolbar.findViewById<View>(androidx.appcompat.R.id.action_menu_presenter)
-            overflowButton?.setOnClickListener {
-                showToolbarMenuBottomSheet()
-            }
-        }
-    }
-
     private fun showToolbarMenuBottomSheet() {
         val popup = androidx.appcompat.widget.PopupMenu(requireContext(), binding.toolbar)
         requireActivity().menuInflater.inflate(R.menu.menu_playlist_detail, popup.menu)
-        com.mardous.booming.core.sort.SongSortMode.PlaylistSongs.createMenu(popup.menu)
         if (playlist.playlistEntity.isFavorites(requireContext())) {
             popup.menu.removeItem(R.id.action_delete_playlist)
         }

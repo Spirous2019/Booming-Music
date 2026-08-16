@@ -170,38 +170,40 @@ class SortBottomSheetDialogFragment : BottomSheetDialogFragment() {
                 }
             }
 
-            HorizontalDivider(
-                modifier = Modifier.padding(vertical = 8.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-            )
+            if (currentKey != SortKey.Custom) {
+                HorizontalDivider(
+                    modifier = Modifier.padding(vertical = 8.dp),
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                )
 
-            // Descending Switch
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        val newDesc = !isDescending
-                        sortMode.selectedDescending = newDesc
-                        isDescending = newDesc
-                        onSortChanged()
-                    }
-                    .padding(horizontal = 24.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.descending_label),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
-                Switch(
-                    checked = isDescending,
-                    onCheckedChange = { checked ->
-                        sortMode.selectedDescending = checked
-                        isDescending = checked
-                        onSortChanged()
-                    }
-                )
+                // Descending Switch
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable {
+                            val newDesc = !isDescending
+                            sortMode.selectedDescending = newDesc
+                            isDescending = newDesc
+                            onSortChanged()
+                        }
+                        .padding(horizontal = 24.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.descending_label),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Switch(
+                        checked = isDescending,
+                        onCheckedChange = { checked ->
+                            sortMode.selectedDescending = checked
+                            isDescending = checked
+                            onSortChanged()
+                        }
+                    )
+                }
             }
         }
     }

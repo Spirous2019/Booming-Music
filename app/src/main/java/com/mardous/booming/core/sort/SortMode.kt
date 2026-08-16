@@ -242,12 +242,16 @@ sealed class SongSortMode(
             SortKey.Track -> sortedWith(compareBy { it.trackNumber })
             SortKey.Duration -> sortedWith(compareBy { it.duration })
             SortKey.Year -> sortedWith(compareBy { it.year })
-            SortKey.DateAdded -> sortedWith(compareBy { it.dateAdded })
-            SortKey.DateModified -> sortedWith(compareBy { it.rawDateModified })
+            SortKey.DateAdded -> sortedWith(
+                compareBy<Song> { it.dateAdded }.thenBy(collator) { it.title.normalize() }
+            )
+            SortKey.DateModified -> sortedWith(
+                compareBy<Song> { it.rawDateModified }.thenBy(collator) { it.title.normalize() }
+            )
             SortKey.FileName -> sortedWith(compareBy { it.fileName })
             else -> this
         }
-        return if (selectedDescending) songs.reversed() else songs
+        return if (selectedKey != SortKey.Custom && selectedDescending) songs.reversed() else songs
     }
 }
 

@@ -63,9 +63,12 @@ class PlaylistSongAdapter(
         return ViewHolder(view)
     }
 
+    val isDragAllowed: Boolean
+        get() = !isLockDrag && SongSortMode.PlaylistSongs.selectedKey == SortKey.Custom
+
     override fun onBindViewHolder(holder: SongAdapter.ViewHolder, position: Int) {
         super.onBindViewHolder(holder, position)
-        holder.dragView?.isGone = isLockDrag
+        holder.dragView?.isGone = !isDragAllowed
     }
 
     override fun getItemId(position: Int): Long {
@@ -73,7 +76,7 @@ class PlaylistSongAdapter(
     }
 
     override fun onCheckCanStartDrag(holder: ViewHolder, position: Int, x: Int, y: Int): Boolean {
-        if (isLockDrag || isInQuickSelectMode) {
+        if (!isDragAllowed || isInQuickSelectMode) {
             return false
         }
         return (holder.dragView?.hitTest(x, y) ?: false)
@@ -83,10 +86,13 @@ class PlaylistSongAdapter(
         return null
     }
 
+    var onSortResetToCustom: (() -> Unit)? = null
+
     override fun onMoveItem(fromPosition: Int, toPosition: Int) {
         SongSortMode.PlaylistSongs.selectedKey = SortKey.Custom
         SongSortMode.PlaylistSongs.selectedDescending = false
         mutableDataSet.add(toPosition, mutableDataSet.removeAt(fromPosition))
+        onSortResetToCustom?.invoke()
     }
 
     override fun onCheckCanDrop(draggingPosition: Int, dropPosition: Int): Boolean {
@@ -115,6 +121,7 @@ class PlaylistSongAdapter(
     @SuppressLint("NotifyDataSetChanged")
     fun setLockDrag(lockDrag: Boolean) {
         this.isLockDrag = lockDrag
+        notifyItemRangeChanged(0, itemCount)
         notifyDataSetChanged()
     }
 

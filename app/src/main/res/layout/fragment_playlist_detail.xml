@@ -42,6 +42,10 @@
 
         </com.google.android.material.appbar.CollapsingToolbarLayout>
 
+        <include
+            android:id="@+id/sub_header"
+            layout="@layout/sub_header_library" />
+
     </com.google.android.material.appbar.AppBarLayout>
 
     <FrameLayout

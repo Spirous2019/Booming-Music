@@ -83,8 +83,13 @@ open class SongAdapter(
 
     open var dataSet: List<Song> = dataSet
         set(value) {
+            val oldSize = field.size
             field = value
             notifyDataSetChanged()
+            val changeCount = maxOf(oldSize, value.size)
+            if (changeCount > 0) {
+                notifyItemRangeChanged(0, changeCount)
+            }
             if (value.isNotEmpty()) {
                 activity.lifecycleScope.launch(Dispatchers.IO) {
                     lyricsRepository.prefetchLyricsAvailability(value)
