@@ -54,7 +54,6 @@ class ExpressivePlayerFragment : AbsPlayerFragment(R.layout.fragment_expressive_
         get() = Preferences.getNowPlayingColorSchemeMode(NowPlayingScreen.Expressive)
 
     private var popupMenu: PopupMenu? = null
-    private var isFavorite = false
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
@@ -212,10 +211,8 @@ class ExpressivePlayerFragment : AbsPlayerFragment(R.layout.fragment_expressive_
     }
 
     override fun onIsFavoriteChanged(isFavorite: Boolean, withAnimation: Boolean) {
-        if (this.isFavorite != isFavorite) {
-            this.isFavorite = isFavorite
-            binding.favoriteButton.setIsFavorite(isFavorite, withAnimation)
-        }
+        super.onIsFavoriteChanged(isFavorite, withAnimation)
+        binding.favoriteButton.setIsFavorite(isFavorite, withAnimation)
     }
 
     override fun onLyricsVisibilityChange(animatorSet: AnimatorSet, lyricsVisible: Boolean) {

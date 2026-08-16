@@ -1,6 +1,7 @@
 package com.mardous.booming.core.model.sort
 
 enum class SortKey(val value: String) {
+    Custom("custom_key"),
     AZ("az_key"),
     Album("album_key"),
     Artist("artist_key"),

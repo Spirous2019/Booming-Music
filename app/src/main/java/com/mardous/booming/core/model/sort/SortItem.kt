@@ -7,6 +7,12 @@ sealed class SortItem(val group: Int, val id: Int, val title: Int)
 sealed class KeySortItem(id: Int, title: Int, val key: SortKey)
     : SortItem(group = 0, id = id, title = title) {
 
+    object Custom : KeySortItem(
+        R.id.action_sort_order_custom,
+        R.string.sort_order_custom,
+        SortKey.Custom
+    )
+
     object Title : KeySortItem(
         R.id.action_sort_order_az,
         R.string.sort_order_az,

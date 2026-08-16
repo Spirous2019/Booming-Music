@@ -170,16 +170,38 @@ class AddToPlaylistDialog : BottomSheetDialogFragment() {
         val uiState by libraryViewModel.addToPlaylistUiState.collectAsState()
 
         val checkedPlaylists = rememberSaveable { mutableStateListOf<Long>() }
+        val initialCheckedPlaylists = rememberSaveable { mutableStateListOf<Long>() }
+        var hasInitializedChecked by rememberSaveable { mutableStateOf(false) }
         var searchQuery by rememberSaveable { mutableStateOf("") }
 
+        val isBottomCardVisible = checkedPlaylists.isNotEmpty() || initialCheckedPlaylists.isNotEmpty()
+
         val listBottomPadding by animateDpAsState(
-            targetValue = if (checkedPlaylists.isNotEmpty()) 116.dp else 16.dp,
-            animationSpec = tween(1000)
+            targetValue = if (isBottomCardVisible) 116.dp else 16.dp,
+            animationSpec = tween(500)
         )
 
         LaunchedEffect(searchQuery) {
             if (uiState == null || uiState?.isLoading == false) {
                 libraryViewModel.prepareToAddToPlaylist(searchQuery)
+            }
+        }
+
+        LaunchedEffect(uiState) {
+            val state = uiState
+            if (state is AddToPlaylistUiState.Ready && !hasInitializedChecked) {
+                val songIds = songs.map { it.id }.toSet()
+                val initiallyChecked = state.playlists.filter { playlist ->
+                    val playlistSongIds = playlist.songs.map { it.id }.toSet()
+                    songIds.isNotEmpty() && songIds.all { it in playlistSongIds }
+                }.map { it.playlistEntity.playListId }
+                checkedPlaylists.clear()
+                checkedPlaylists.addAll(initiallyChecked)
+                initialCheckedPlaylists.clear()
+                initialCheckedPlaylists.addAll(initiallyChecked)
+                hasInitializedChecked = true
+            } else if (state is AddToPlaylistUiState.Empty && !hasInitializedChecked) {
+                hasInitializedChecked = true
             }
         }
 
@@ -350,7 +372,7 @@ class AddToPlaylistDialog : BottomSheetDialogFragment() {
 
                             is AddToPlaylistUiState.Completed -> {
                                 if (state.isSuccess) {
-                                    context.showToast(R.string.songs_added_to_playlists)
+                                    context.showToast(R.string.playlist_updated)
                                 }
                                 onDismiss()
                             }
@@ -360,7 +382,7 @@ class AddToPlaylistDialog : BottomSheetDialogFragment() {
                     }
 
                     androidx.compose.animation.AnimatedVisibility(
-                        visible = checkedPlaylists.isNotEmpty(),
+                        visible = isBottomCardVisible,
                         enter = fadeIn() + slideInVertically { it },
                         exit = fadeOut() + slideOutVertically { it },
                         modifier = Modifier
@@ -390,6 +412,7 @@ class AddToPlaylistDialog : BottomSheetDialogFragment() {
                                     onClick = {
                                         libraryViewModel.addToPlaylists(checkedPlaylists, songs)
                                     },
+                                    enabled = (uiState as? AddToPlaylistUiState.Ready)?.isLoading != true,
                                     contentPadding = ButtonDefaults.MediumContentPadding
                                 ) {
                                     Icon(
@@ -397,7 +420,11 @@ class AddToPlaylistDialog : BottomSheetDialogFragment() {
                                         contentDescription = null
                                     )
                                     Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                                    Text(stringResource(R.string.add_action))
+                                    Text(
+                                        stringResource(
+                                            if (initialCheckedPlaylists.isNotEmpty()) R.string.action_save else R.string.add_action
+                                        )
+                                    )
                                 }
                             }
                         }

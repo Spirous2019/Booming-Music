@@ -199,6 +199,23 @@ sealed class SongSortMode(
         )
     )
 
+    object PlaylistSongs : SongSortMode(
+        id = "playlist_song",
+        defaults = SortKey.Custom to false,
+        items = listOf(
+            KeySortItem.Custom,
+            KeySortItem.Title,
+            KeySortItem.Artist,
+            KeySortItem.Album,
+            KeySortItem.Duration,
+            KeySortItem.Year,
+            KeySortItem.DateAdded,
+            KeySortItem.DateModified,
+            KeySortItem.FileName,
+            DescendingItem
+        )
+    )
+
     class Dynamic(
         override var selectedKey: SortKey,
         override var selectedDescending: Boolean = false,

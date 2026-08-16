@@ -116,9 +116,12 @@ class DefaultPlayerFragment : AbsPlayerFragment(R.layout.fragment_default_player
             val popupMenu = newPopupMenu(menuBtn, R.menu.menu_now_playing) {
                 onMenuInflated(it)
             }
+            nowPlayingPopupMenu = popupMenu
+            popupMenu.menu.setIsFavorite(isFavorite, false)
             menuBtn.setOnClickListener {
                 val activity = menuBtn.context.findAppCompatActivity()
                 if (activity != null) {
+                    popupMenu.menu.setIsFavorite(isFavorite, false)
                     MenuBottomSheetDialogFragment()
                         .setMenu(popupMenu.menu) { itemId ->
                             val item = popupMenu.menu.findItem(itemId)

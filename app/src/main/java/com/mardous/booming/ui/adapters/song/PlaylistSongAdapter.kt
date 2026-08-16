@@ -37,6 +37,8 @@ import com.mardous.booming.extensions.resources.hitTest
 import com.mardous.booming.ui.ISongCallback
 import com.mardous.booming.ui.screen.library.LibraryViewModel
 import kotlinx.coroutines.Dispatchers
+import com.mardous.booming.core.model.sort.SortKey
+import com.mardous.booming.core.sort.SongSortMode
 import kotlinx.coroutines.launch
 import org.koin.androidx.viewmodel.ext.android.viewModel
 
@@ -47,7 +49,7 @@ class PlaylistSongAdapter(
     itemLayoutRes: Int,
     isLockDrag: Boolean,
     callback: ISongCallback? = null
-) : SongAdapter(activity, dataSet, itemLayoutRes, null, callback),
+) : SongAdapter(activity, dataSet, itemLayoutRes, SongSortMode.PlaylistSongs, callback),
     DraggableItemAdapter<PlaylistSongAdapter.ViewHolder> {
 
     var isLockDrag = isLockDrag
@@ -82,6 +84,8 @@ class PlaylistSongAdapter(
     }
 
     override fun onMoveItem(fromPosition: Int, toPosition: Int) {
+        SongSortMode.PlaylistSongs.selectedKey = SortKey.Custom
+        SongSortMode.PlaylistSongs.selectedDescending = false
         mutableDataSet.add(toPosition, mutableDataSet.removeAt(fromPosition))
     }
 

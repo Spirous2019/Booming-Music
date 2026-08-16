@@ -101,14 +101,8 @@ fun Song.albumArtistName() = if (albumArtistName.isNullOrBlank()) artistName els
 fun Song.songDurationStr() = duration.asReadableDuration()
 
 fun Song.searchQuery(engine: WebSearchEngine): String {
-    val searchQuery = when (engine) {
-        WebSearchEngine.Google, WebSearchEngine.YouTube ->
-            if (isArtistNameUnknown()) title else "$artistName $title"
-
-        WebSearchEngine.LastFm, WebSearchEngine.Wikipedia ->
-            if (isArtistNameUnknown()) title else if (albumArtistName.isNullOrEmpty()) artistName.toAlbumArtistName() else albumArtistName!!
-    }
-    return engine.getURLForQuery(searchQuery)
+    val query = if (isArtistNameUnknown()) title else "$artistName $title"
+    return engine.getURLForQuery(query)
 }
 
 fun Song.songInfo(): String {

@@ -407,23 +407,39 @@ class LibraryViewModel(
         songs: List<Song>
     ) = viewModelScope.launch(IO) {
         val state = addToPlaylistUiState.value ?: return@launch
-        if (state is AddToPlaylistUiState.Ready && state.playlists.isNotEmpty()) {
+        if (state is AddToPlaylistUiState.Ready) {
             _addToPlaylistUiState.value = state.copy(isLoading = true)
 
             var success = true
-            val playlists = state.playlists.filter { playlistsIds.contains(it.playlistEntity.playListId) }
-            for (playlist in playlists) {
-                val checkedSongs = songs.filterNot {
-                    repository.checkSongExistInPlaylist(playlist.playlistEntity, it)
-                }
-                val result = runCatching {
-                    insertSongs(
-                        songs = checkedSongs.map {
-                            it.toSongEntity(playListId = playlist.playlistEntity.playListId)
+            val allPlaylists = repository.playlistsWithSongs()
+            val songIds = songs.map { it.id }.toSet()
+
+            for (playlist in allPlaylists) {
+                val playlistId = playlist.playlistEntity.playListId
+                val isSelected = playlistsIds.contains(playlistId)
+                val existingSongEntities = playlist.songs.filter { it.id in songIds }
+                val existingSongIds = existingSongEntities.map { it.id }.toSet()
+
+                if (isSelected) {
+                    val songsToAdd = songs.filter { it.id !in existingSongIds }
+                    if (songsToAdd.isNotEmpty()) {
+                        val result = runCatching {
+                            insertSongs(
+                                songs = songsToAdd.map {
+                                    it.toSongEntity(playListId = playlistId)
+                                }
+                            )
                         }
-                    )
+                        success = success && result.isSuccess
+                    }
+                } else {
+                    if (existingSongEntities.isNotEmpty()) {
+                        val result = runCatching {
+                            repository.deleteSongsInPlaylist(existingSongEntities)
+                        }
+                        success = success && result.isSuccess
+                    }
                 }
-                success = success && result.isSuccess
             }
 
             _addToPlaylistUiState.value = AddToPlaylistUiState.Completed(success)

@@ -135,7 +135,8 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
         }
         detailViewModel.getSongs().observe(viewLifecycleOwner) {
             binding.progressIndicator.hide()
-            playlistSongAdapter?.dataSet = it.toSongs()
+            val sortedSongs = with(com.mardous.booming.core.sort.SongSortMode.PlaylistSongs) { it.toSongs().sorted() }
+            playlistSongAdapter?.dataSet = sortedSongs
         }
         detailViewModel.playlistExists().observe(viewLifecycleOwner) {
             if (!it) {
@@ -194,12 +195,20 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
 
     override fun onCreateMenu(menu: Menu, menuInflater: MenuInflater) {
         menuInflater.inflate(R.menu.menu_playlist_detail_toolbar, menu)
+        com.mardous.booming.core.sort.SongSortMode.PlaylistSongs.createMenu(menu)
         if (!isLandscape()) {
             menu.removeItem(R.id.action_search)
         }
     }
 
     override fun onMenuItemSelected(menuItem: MenuItem): Boolean {
+        if (com.mardous.booming.core.sort.SongSortMode.PlaylistSongs.sortItemSelected(menuItem)) {
+            detailViewModel.getSongs().value?.let {
+                val sortedSongs = with(com.mardous.booming.core.sort.SongSortMode.PlaylistSongs) { it.toSongs().sorted() }
+                playlistSongAdapter?.dataSet = sortedSongs
+            }
+            return true
+        }
         return when (menuItem.itemId) {
             android.R.id.home -> {
                 findNavController().navigateUp()
@@ -297,6 +306,7 @@ class PlaylistDetailFragment : AbsMainActivityFragment(R.layout.fragment_playlis
     private fun showToolbarMenuBottomSheet() {
         val popup = androidx.appcompat.widget.PopupMenu(requireContext(), binding.toolbar)
         requireActivity().menuInflater.inflate(R.menu.menu_playlist_detail, popup.menu)
+        com.mardous.booming.core.sort.SongSortMode.PlaylistSongs.createMenu(popup.menu)
         if (playlist.playlistEntity.isFavorites(requireContext())) {
             popup.menu.removeItem(R.id.action_delete_playlist)
         }

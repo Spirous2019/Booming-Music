@@ -71,8 +71,8 @@ abstract class AbsTagEditorActivity : AbsBaseActivity(),
         setContentView(binding.root)
         setSupportActionBar(binding.toolbar)
 
-        binding.root.applyScrollableContentInsets(binding.container)
-        binding.actionSave.applyBottomWindowInsets()
+        binding.root.applyScrollableContentInsets(binding.container, ime = true)
+        binding.actionSave.applyBottomWindowInsets(ime = true)
 
         binding.image.setOnClickListener(this@AbsTagEditorActivity)
         binding.actionSave.setOnClickListener(this@AbsTagEditorActivity)

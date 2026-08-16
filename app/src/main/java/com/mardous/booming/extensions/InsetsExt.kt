@@ -101,36 +101,43 @@ fun View.applyWindowInsets(
     addedSpace: Space = Space(),
     consumer: InsetsConsumer? = null
 ) {
+    val initialValues = currentSpace(padding)
     ViewCompat.setOnApplyWindowInsetsListener(this) { v: View, insets: WindowInsetsCompat ->
-        if (getTag(R.id.id_inset_consumed) == true)
-            return@setOnApplyWindowInsetsListener insets
-
         val mask = Type.systemBars() or Type.displayCutout() or if (ime) Type.ime() else 0
         val i = insets.getInsets(mask)
-        val start = if (layoutDirection == LAYOUT_DIRECTION_RTL) i.right else i.left
-        val end = if (layoutDirection == LAYOUT_DIRECTION_RTL) i.left else i.right
-        val currentValues = v.currentSpace(padding)
+        val start = if (v.layoutDirection == LAYOUT_DIRECTION_RTL) i.right else i.left
+        val end = if (v.layoutDirection == LAYOUT_DIRECTION_RTL) i.left else i.right
         val userAddedSpace = addedSpace.resolve(v)
         if (!padding) {
             if (v.layoutParams is MarginLayoutParams) {
                 v.updateLayoutParams<MarginLayoutParams> {
-                    marginStart = (if (left) (start + currentValues.left) else currentValues.left) + userAddedSpace.left
-                    topMargin = (if (top) (i.top + currentValues.top) else currentValues.top) + userAddedSpace.top
-                    marginEnd = (if (right) (end + currentValues.right) else currentValues.right) + userAddedSpace.right
-                    bottomMargin = (if (bottom) (i.bottom + currentValues.bottom) else currentValues.bottom) + userAddedSpace.bottom
+                    marginStart = (if (left) (start + initialValues.left) else initialValues.left) + userAddedSpace.left
+                    topMargin = (if (top) (i.top + initialValues.top) else initialValues.top) + userAddedSpace.top
+                    marginEnd = (if (right) (end + initialValues.right) else initialValues.right) + userAddedSpace.right
+                    bottomMargin = (if (bottom) (i.bottom + initialValues.bottom) else initialValues.bottom) + userAddedSpace.bottom
                 }
             }
         } else {
             v.setPaddingRelative(
-                (if (left) (start + currentValues.left) else currentValues.left) + userAddedSpace.left,
-                (if (top) (i.top + currentValues.top) else currentValues.top) + userAddedSpace.top,
-                (if (right) (end + currentValues.right) else currentValues.right) + userAddedSpace.right,
-                (if (bottom) (i.bottom + currentValues.bottom) else currentValues.bottom) + userAddedSpace.bottom
+                (if (left) (start + initialValues.left) else initialValues.left) + userAddedSpace.left,
+                (if (top) (i.top + initialValues.top) else initialValues.top) + userAddedSpace.top,
+                (if (right) (end + initialValues.right) else initialValues.right) + userAddedSpace.right,
+                (if (bottom) (i.bottom + initialValues.bottom) else initialValues.bottom) + userAddedSpace.bottom
             )
         }
-        setTag(R.id.id_inset_consumed, true)
         consumer?.invoke(v, insets)
         insets
+    }
+    if (isAttachedToWindow) {
+        ViewCompat.requestApplyInsets(this)
+    } else {
+        addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(v: View) {
+                v.removeOnAttachStateChangeListener(this)
+                ViewCompat.requestApplyInsets(v)
+            }
+            override fun onViewDetachedFromWindow(v: View) = Unit
+        })
     }
 }
 

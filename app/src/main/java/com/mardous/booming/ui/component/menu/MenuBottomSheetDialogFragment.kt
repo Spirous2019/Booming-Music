@@ -290,7 +290,13 @@ class MenuBottomSheetDialogFragment : BottomSheetDialogFragment() {
             R.id.action_equalizer -> R.drawable.ic_equalizer_24dp
             R.id.action_sound_settings -> R.drawable.ic_volume_up_24dp
             R.id.action_web_search -> R.drawable.ic_language_24dp
-            R.id.action_favorite -> R.drawable.ic_favorite_24dp
+            R.id.action_favorite -> {
+                if (title.contains("remove", ignoreCase = true) || title.contains("удалить", ignoreCase = true) || title.contains("quitar", ignoreCase = true) || title.contains("entfernen", ignoreCase = true) || title.contains("supprimer", ignoreCase = true)) {
+                    R.drawable.ic_favorite_24dp
+                } else {
+                    R.drawable.ic_favorite_outline_24dp
+                }
+            }
             R.id.action_set_as_ringtone -> R.drawable.ic_phonelink_ring_24dp
             R.id.action_multi_select_adapter_check_all -> R.drawable.ic_select_all_24dp
             R.id.action_change_artist_image -> R.drawable.ic_image_24dp

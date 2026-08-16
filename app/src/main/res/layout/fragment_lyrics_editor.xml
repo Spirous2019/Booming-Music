@@ -24,7 +24,8 @@
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="match_parent"
-        android:layout_height="match_parent">
+        android:layout_height="0dp"
+        android:layout_weight="1">
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/guideline"
@@ -142,7 +143,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:inputType="text|textMultiLine"
-                    android:gravity="top|start" />
+                    android:gravity="top|start"
+                    android:scrollbars="vertical" />
 
             </com.google.android.material.textfield.TextInputLayout>
 
@@ -158,7 +160,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:inputType="text|textMultiLine"
-                    android:gravity="top|start" />
+                    android:gravity="top|start"
+                    android:scrollbars="vertical" />
 
             </com.google.android.material.textfield.TextInputLayout>
 

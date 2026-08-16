@@ -93,7 +93,12 @@ class LyricsEditorFragment : AbsMainActivityFragment(R.layout.fragment_lyrics_ed
         _binding = FragmentLyricsEditorBinding.bind(view)
 
         materialSharedAxis(view)
-        view.applyWindowInsets(left = true, right = true, bottom = false)
+        view.applyWindowInsets(
+            left = isLandscape() && mainActivity.navigationView.isGone,
+            right = true,
+            bottom = true,
+            ime = true
+        )
         setSupportActionBar(binding.toolbar)
         permissionLauncher = registerForActivityResult(StartIntentSenderForResult()) {
             if (it.resultCode != Activity.RESULT_OK) {

@@ -191,6 +191,10 @@ abstract class AbsPlayerFragment(@LayoutRes layoutRes: Int) : Fragment(layoutRes
         view.setOnTouchListener(gesturesController)
     }
 
+    protected var nowPlayingPopupMenu: PopupMenu? = null
+    protected var isFavorite: Boolean = false
+        private set
+
     internal fun inflateMenuInView(view: View?): PopupMenu? {
         if (view != null) {
             if (view is Toolbar) {
@@ -201,9 +205,12 @@ abstract class AbsPlayerFragment(@LayoutRes layoutRes: Int) : Fragment(layoutRes
                 val popupMenu = newPopupMenu(view, R.menu.menu_now_playing) {
                     onMenuInflated(it)
                 }
+                nowPlayingPopupMenu = popupMenu
+                popupMenu.menu.setIsFavorite(isFavorite, false)
                 view.setOnClickListener {
                     val activity = view.context.findAppCompatActivity()
                     if (activity != null) {
+                        popupMenu.menu.setIsFavorite(isFavorite, false)
                         MenuBottomSheetDialogFragment()
                             .setMenu(popupMenu.menu) { itemId ->
                                 val item = popupMenu.menu.findItem(itemId)
@@ -591,7 +598,9 @@ abstract class AbsPlayerFragment(@LayoutRes layoutRes: Int) : Fragment(layoutRes
     }
 
     protected open fun onIsFavoriteChanged(isFavorite: Boolean, withAnimation: Boolean) {
+        this.isFavorite = isFavorite
         playerToolbar?.menu?.setIsFavorite(isFavorite, withAnimation)
+        nowPlayingPopupMenu?.menu?.setIsFavorite(isFavorite, withAnimation)
     }
 
     private fun updateIsFavorite(song: Song = playerViewModel.currentSong, withAnim: Boolean = false) {

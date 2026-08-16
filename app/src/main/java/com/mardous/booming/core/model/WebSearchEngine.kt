@@ -28,8 +28,6 @@ enum class WebSearchEngine(
     private val localizedUrl: String? = null
 ) {
     Google(R.string.google, "https://www.google.com/search?q="),
-    LastFm(R.string.lastfm, "https://wwww.last.fm/music/", "https://www.last.fm/%s/music/"),
-    Wikipedia(R.string.wikipedia, "https://www.wikipedia.org/wiki/Special:Search?search=", "https://%s.wikipedia.org/wiki/Special:Search?search="),
     YouTube(R.string.youtube, "https://www.youtube.com/results?search_query=");
 
     fun getURLForQuery(query: String, locale: Locale = Locale.getDefault()): String {
