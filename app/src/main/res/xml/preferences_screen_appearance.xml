@@ -11,6 +11,14 @@
         app:widgetLayout="@layout/preference_general_theme"
         app:key="general_theme"/>
 
+    <com.mardous.booming.ui.component.preferences.CustomDialogPreference
+        app:icon="@drawable/ic_palette_24dp"
+        app:title="@string/accent_color_title"
+        app:summary="@string/accent_color_summary"
+        app:layout="@layout/list_item_view"
+        app:persistent="false"
+        app:key="accent_color"/>
+
 
     <SwitchPreferenceCompat
         app:icon="@drawable/ic_text_fields_24dp"

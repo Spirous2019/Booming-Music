@@ -66,6 +66,12 @@ class ArtistListFragment : AbsRecyclerViewCustomGridSizeFragment<ArtistAdapter, 
             adapter?.dataSet = sortedArtists
             setSubHeaderItemCount(sortedArtists.size, R.string.artist_label, R.string.artists_label)
         }
+        childFragmentManager.setFragmentResultListener(
+            com.mardous.booming.ui.dialogs.artists.ArtistImagePickerDialogFragment.REQUEST_KEY,
+            viewLifecycleOwner
+        ) { _, _ ->
+            adapter?.notifyDataSetChanged()
+        }
     }
 
     override fun onSortModeChanged() {

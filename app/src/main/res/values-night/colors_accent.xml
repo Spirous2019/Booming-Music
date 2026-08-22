@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Blue (Default) -->
+    <color name="accent_blue_primary">#3A86F5</color>
+    <color name="accent_blue_on_primary">#FFFFFF</color>
+    <color name="accent_blue_primary_container">#0F253C</color>
+    <color name="accent_blue_on_primary_container">#FFFFFF</color>
+    <color name="accent_blue_secondary_container">#0F253C</color>
+    <color name="accent_blue_on_secondary_container">#FFFFFF</color>
+
+    <!-- Grey (Neutral True Grey) -->
+    <color name="accent_grey_primary">#BDBDBD</color>
+    <color name="accent_grey_on_primary">#121212</color>
+    <color name="accent_grey_primary_container">#2E2E2E</color>
+    <color name="accent_grey_on_primary_container">#F5F5F5</color>
+    <color name="accent_grey_secondary_container">#242424</color>
+    <color name="accent_grey_on_secondary_container">#E0E0E0</color>
+
+    <!-- Purple (Royal Violet) -->
+    <color name="accent_purple_primary">#C084FC</color>
+    <color name="accent_purple_on_primary">#3B0764</color>
+    <color name="accent_purple_primary_container">#3B0764</color>
+    <color name="accent_purple_on_primary_container">#FAF5FF</color>
+    <color name="accent_purple_secondary_container">#2E0854</color>
+    <color name="accent_purple_on_secondary_container">#E9D5FF</color>
+
+    <!-- Green (Spotify Emerald) -->
+    <color name="accent_green_primary">#4ADE80</color>
+    <color name="accent_green_on_primary">#052E16</color>
+    <color name="accent_green_primary_container">#052E16</color>
+    <color name="accent_green_on_primary_container">#F0FDF4</color>
+    <color name="accent_green_secondary_container">#064E3B</color>
+    <color name="accent_green_on_secondary_container">#BBF7D0</color>
+
+    <!-- Red (Apple Crimson) -->
+    <color name="accent_red_primary">#F87171</color>
+    <color name="accent_red_on_primary">#450A0A</color>
+    <color name="accent_red_primary_container">#450A0A</color>
+    <color name="accent_red_on_primary_container">#FEF2F2</color>
+    <color name="accent_red_secondary_container">#571212</color>
+    <color name="accent_red_on_secondary_container">#FECACA</color>
+
+    <!-- Orange (SoundCloud Warm) -->
+    <color name="accent_orange_primary">#FB923C</color>
+    <color name="accent_orange_on_primary">#431407</color>
+    <color name="accent_orange_primary_container">#431407</color>
+    <color name="accent_orange_on_primary_container">#FFF7ED</color>
+    <color name="accent_orange_secondary_container">#521B0A</color>
+    <color name="accent_orange_on_secondary_container">#FED7AA</color>
+
+    <!-- Pink (Pop Magenta) -->
+    <color name="accent_pink_primary">#F472B6</color>
+    <color name="accent_pink_on_primary">#500724</color>
+    <color name="accent_pink_primary_container">#500724</color>
+    <color name="accent_pink_on_primary_container">#FDF2F8</color>
+    <color name="accent_pink_secondary_container">#5B0D30</color>
+    <color name="accent_pink_on_secondary_container">#FBCFE8</color>
+
+    <!-- Teal (Tidal Cyan) -->
+    <color name="accent_teal_primary">#22D3EE</color>
+    <color name="accent_teal_on_primary">#083344</color>
+    <color name="accent_teal_primary_container">#083344</color>
+    <color name="accent_teal_on_primary_container">#ECFEFF</color>
+    <color name="accent_teal_secondary_container">#0A4257</color>
+    <color name="accent_teal_on_secondary_container">#A5F3FC</color>
+</resources>

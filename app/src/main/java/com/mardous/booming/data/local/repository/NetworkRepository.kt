@@ -17,10 +17,8 @@ import com.mardous.booming.data.remote.deezer.model.DeezerAlbum
 import com.mardous.booming.data.remote.deezer.model.DeezerArtist
 import com.mardous.booming.data.remote.deezer.model.DeezerTrack
 import com.mardous.booming.data.remote.duckduckgo.DuckDuckGoService
-import com.mardous.booming.data.remote.fanarttv.FanartTvService
 import com.mardous.booming.data.remote.itunes.iTunesService
 import com.mardous.booming.data.remote.itunes.model.iTunesArtist
-import com.mardous.booming.data.remote.wikimedia.WikimediaService
 import com.mardous.booming.data.remote.lastfm.LastFmService
 import com.mardous.booming.data.remote.lastfm.model.LastFmAlbum
 import com.mardous.booming.data.remote.lastfm.model.LastFmArtist
@@ -60,9 +58,7 @@ interface NetworkRepository {
     suspend fun deezerAlbum(artist: String, name: String): DeezerAlbum?
     suspend fun deezerAlbumsByArtist(artistName: String, limit: Int = 25): DeezerAlbum?
     suspend fun iTunesArtist(name: String): iTunesArtist?
-    suspend fun wikimediaArtistPortraits(name: String): List<Pair<String, String>>
     suspend fun duckDuckGoArtistPortraits(name: String): List<Pair<String, String>>
-    suspend fun fanartTvArtistPortraits(name: String): List<Pair<String, String>>
 }
 
 class NetworkRepositoryImpl(
@@ -72,9 +68,7 @@ class NetworkRepositoryImpl(
     private val listenBrainzService: ListenBrainzService,
     private val deezerService: DeezerService,
     private val duckDuckGoService: DuckDuckGoService,
-    private val fanartTvService: FanartTvService,
-    private val iTunesService: iTunesService,
-    private val wikimediaService: WikimediaService
+    private val iTunesService: iTunesService
 ) : NetworkRepository {
 
     private val lastFmLoginStateFlow = MutableStateFlow<LoginState>(LoginState.Empty)
@@ -213,29 +207,11 @@ class NetworkRepositoryImpl(
         }
     }
 
-    override suspend fun wikimediaArtistPortraits(name: String): List<Pair<String, String>> {
-        return try {
-            wikimediaService.getArtistPortraits(name)
-        } catch (e: Exception) {
-            Log.e(TAG, "Wikimedia: artist portraits couldn't be retrieved!", e)
-            emptyList()
-        }
-    }
-
     override suspend fun duckDuckGoArtistPortraits(name: String): List<Pair<String, String>> {
         return try {
             duckDuckGoService.getArtistPortraits(name)
         } catch (e: Exception) {
             Log.e(TAG, "DuckDuckGo: artist portraits couldn't be retrieved!", e)
-            emptyList()
-        }
-    }
-
-    override suspend fun fanartTvArtistPortraits(name: String): List<Pair<String, String>> {
-        return try {
-            fanartTvService.getArtistPortraits(name)
-        } catch (e: Exception) {
-            Log.e(TAG, "Fanart.tv: artist portraits couldn't be retrieved!", e)
             emptyList()
         }
     }

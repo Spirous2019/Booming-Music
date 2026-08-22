@@ -55,6 +55,7 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.debounce
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.distinctUntilChangedBy
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.launchIn
@@ -152,10 +153,8 @@ class PlayerViewModel(
             _repeatModeFlow.value = mediaController.repeatMode
             _shuffleModeFlow.value = mediaController.shuffleModeEnabled
 
-            if (progress == C.TIME_UNSET || duration == C.TIME_UNSET) {
-                _progressFlow.value = mediaController.contentPosition
-                _durationFlow.value = mediaController.contentDuration
-            }
+            _progressFlow.value = mediaController.contentPosition
+            _durationFlow.value = mediaController.contentDuration
 
             onGenerateQueue(mediaController)
 
@@ -167,10 +166,20 @@ class PlayerViewModel(
 
             internalJobs += combine(queueFlow, positionFlow)
             { queue, position -> Pair(queue, position) }
-                .debounce(QUEUE_DEBOUNCE)
+                .distinctUntilChanged()
                 .onEach { (queue, position) ->
-                    _currentSongFlow.value = queue.getOrElse(position.current) { Song.emptySong }
-                    _nextSongFlow.value = queue.getOrElse(position.next) { Song.emptySong }
+                    val newCurrent = queue.getOrNull(position.current)
+                    if (newCurrent != null && newCurrent != Song.emptySong) {
+                        _currentSongFlow.value = newCurrent
+                    } else if (queue.isEmpty() && mediaController.currentTimeline.isEmpty) {
+                        _currentSongFlow.value = Song.emptySong
+                    }
+                    val newNext = queue.getOrNull(position.next)
+                    if (newNext != null && newNext != Song.emptySong) {
+                        _nextSongFlow.value = newNext
+                    } else if (queue.isEmpty() && mediaController.currentTimeline.isEmpty) {
+                        _nextSongFlow.value = Song.emptySong
+                    }
                 }
                 .launchIn(viewModelScope)
 
@@ -205,6 +214,18 @@ class PlayerViewModel(
             }
         } else {
             progressObserver.stop()
+            mediaController?.let { controller ->
+                _progressFlow.value = controller.contentPosition
+                _durationFlow.value = controller.contentDuration
+            }
+        }
+    }
+
+    fun syncProgress(player: Player? = mediaController) {
+        player?.let {
+            _isPlayingFlow.value = it.playWhenReady && it.isPlaying
+            _progressFlow.value = it.contentPosition
+            _durationFlow.value = it.contentDuration
         }
     }
 
@@ -263,9 +284,14 @@ class PlayerViewModel(
                 }
             }
 
-            // Update the queue with the valid songs and current positions.
+            // Update the queue with the valid songs and current live position (captured after IO to avoid stale race conditions)
+            val livePlayerIndex = player.currentMediaItemIndex
+            val liveQueuePosition = QueuePosition(
+                current = indicesInTimeline.indexOf(livePlayerIndex),
+                indicesInTimeline = indicesInTimeline
+            )
             _queueFlow.value = songs
-            _positionFlow.value = queuePosition
+            _positionFlow.value = liveQueuePosition
         }
     }
 
@@ -289,10 +315,8 @@ class PlayerViewModel(
         )
         if (isPlayStateEvent) {
             _isPlayingFlow.value = player.playWhenReady && player.isPlaying
-            if (player.playbackState == Player.STATE_READY && !player.playWhenReady) {
-                _progressFlow.value = player.contentPosition
-                _durationFlow.value = player.contentDuration
-            }
+            _progressFlow.value = player.contentPosition
+            _durationFlow.value = player.contentDuration
         }
         if (events.contains(Player.EVENT_REPEAT_MODE_CHANGED)) {
             _repeatModeFlow.value = player.repeatMode
@@ -305,17 +329,39 @@ class PlayerViewModel(
         }
         if (events.contains(Player.EVENT_POSITION_DISCONTINUITY)) {
             if (!events.contains(Player.EVENT_TIMELINE_CHANGED)) {
-                _positionFlow.value = position.setCurrentIndex(player.currentMediaItemIndex)
+                val newIndex = player.currentMediaItemIndex
+                val updatedPos = position.setCurrentIndex(newIndex)
+                _positionFlow.value = updatedPos
+                val currentQueue = queueFlow.value
+                val newCurrent = currentQueue.getOrNull(updatedPos.current)
+                if (newCurrent != null && newCurrent != Song.emptySong) {
+                    _currentSongFlow.value = newCurrent
+                }
+                val newNext = currentQueue.getOrNull(updatedPos.next)
+                if (newNext != null && newNext != Song.emptySong) {
+                    _nextSongFlow.value = newNext
+                }
             }
-            if (!player.playWhenReady) {
-                _progressFlow.value = player.contentPosition
-                _durationFlow.value = player.contentDuration
-            }
+            _progressFlow.value = player.contentPosition
+            _durationFlow.value = player.contentDuration
         }
         if (events.contains(Player.EVENT_MEDIA_ITEM_TRANSITION)) {
             if (!events.contains(Player.EVENT_TIMELINE_CHANGED)) {
-                _positionFlow.value = position.setCurrentIndex(player.currentMediaItemIndex)
+                val newIndex = player.currentMediaItemIndex
+                val updatedPos = position.setCurrentIndex(newIndex)
+                _positionFlow.value = updatedPos
+                val currentQueue = queueFlow.value
+                val newCurrent = currentQueue.getOrNull(updatedPos.current)
+                if (newCurrent != null && newCurrent != Song.emptySong) {
+                    _currentSongFlow.value = newCurrent
+                }
+                val newNext = currentQueue.getOrNull(updatedPos.next)
+                if (newNext != null && newNext != Song.emptySong) {
+                    _nextSongFlow.value = newNext
+                }
             }
+            _progressFlow.value = player.contentPosition
+            _durationFlow.value = player.contentDuration
         }
         if (events.contains(Player.EVENT_TIMELINE_CHANGED)) {
             onGenerateQueue(player)
@@ -335,30 +381,58 @@ class PlayerViewModel(
     }
 
     fun togglePlayPause() {
-        if (isPlaying) {
-            mediaController?.pause()
-        } else {
-            mediaController?.play()
+        mediaController?.let { controller ->
+            if (controller.isPlaying) {
+                controller.pause()
+            } else {
+                if (controller.playbackState == Player.STATE_IDLE) {
+                    controller.prepare()
+                } else if (controller.playbackState == Player.STATE_ENDED) {
+                    controller.seekToDefaultPosition()
+                }
+                controller.play()
+            }
         }
     }
 
     fun seekToNext() {
-        mediaController?.seekToNext()
+        mediaController?.let { controller ->
+            if (controller.playbackState == Player.STATE_IDLE) {
+                controller.prepare()
+            }
+            controller.seekToNext()
+        }
     }
 
     fun seekToPrevious() {
-        mediaController?.seekToPrevious()
+        mediaController?.let { controller ->
+            if (controller.playbackState == Player.STATE_IDLE) {
+                controller.prepare()
+            }
+            controller.seekToPrevious()
+        }
     }
 
     fun seekForward() {
-        mediaController?.seekForward()
+        mediaController?.let { controller ->
+            val target = (controller.contentPosition + Preferences.seekInterval)
+                .coerceAtMost(controller.contentDuration.coerceAtLeast(0L))
+            _progressFlow.value = target
+            controller.seekForward()
+        }
     }
 
     fun seekBack() {
-        mediaController?.seekBack()
+        mediaController?.let { controller ->
+            val target = (controller.contentPosition - Preferences.seekInterval)
+                .coerceAtLeast(0L)
+            _progressFlow.value = target
+            controller.seekBack()
+        }
     }
 
     fun seekTo(positionMillis: Long) {
+        _progressFlow.value = positionMillis
         mediaController?.seekTo(positionMillis)
     }
 

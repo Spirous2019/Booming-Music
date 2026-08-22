@@ -22,6 +22,7 @@ import android.graphics.Color
 import androidx.annotation.ColorInt
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Immutable
+import androidx.compose.ui.graphics.toArgb
 import androidx.core.graphics.ColorUtils
 import androidx.preference.PreferenceManager
 import com.kyant.m3color.hct.Hct
@@ -116,13 +117,16 @@ data class PlayerColorScheme(
         }
     }
 
-    class AppThemeToken(private val isDark: Boolean) {
+    class AppThemeToken(
+        private val isDark: Boolean,
+        private val accentColorId: String = ""
+    ) {
         fun isValid(context: Context): Boolean {
-            return context.isNightMode == isDark
+            return context.isNightMode == isDark && Preferences.accentColor.id == accentColorId
         }
 
         companion object {
-            val None = AppThemeToken(isDark = false)
+            val None = AppThemeToken(isDark = false, accentColorId = "")
         }
     }
 
@@ -151,15 +155,22 @@ data class PlayerColorScheme(
         fun themeColorScheme(context: Context): PlayerColorScheme {
             val onSurfaceColor = context.onSurfaceColor()
             val onSurfaceVariantColor = onSurfaceColor.withAlpha(0.6f)
+            val accent = Preferences.accentColor
+            val primaryColor = if (context.isNightMode) {
+                accent.darkPrimary.toArgb()
+            } else {
+                accent.lightPrimary.toArgb()
+            }
             return PlayerColorScheme(
                 mode = Mode.AppTheme,
                 appThemeToken = AppThemeToken(
-                    isDark = context.isNightMode
+                    isDark = context.isNightMode,
+                    accentColorId = accent.id
                 ),
                 blurToken = BlurToken.None,
                 surfaceColor = context.surfaceColor(),
                 surfaceContainerColor = context.resolveColor(M3R.attr.colorSurfaceContainerHigh),
-                primaryColor = context.primaryColor(),
+                primaryColor = primaryColor,
                 secondaryContainerColor = context.resolveColor(M3R.attr.colorSecondaryContainer),
                 onSurfaceColor = onSurfaceColor,
                 onSurfaceVariantColor = onSurfaceVariantColor

@@ -149,6 +149,13 @@ class ArtistDetailFragment : AbsMainActivityFragment(R.layout.fragment_artist_de
 
         setupRecyclerView()
 
+        childFragmentManager.setFragmentResultListener(
+            com.mardous.booming.ui.dialogs.artists.ArtistImagePickerDialogFragment.REQUEST_KEY,
+            viewLifecycleOwner
+        ) { _, _ ->
+            headerAdapter.notifyItemChanged(0)
+        }
+
         detailViewModel.loadArtistDetail()
     }
 

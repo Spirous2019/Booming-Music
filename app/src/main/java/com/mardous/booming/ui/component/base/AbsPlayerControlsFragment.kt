@@ -204,6 +204,11 @@ abstract class AbsPlayerControlsFragment(@LayoutRes layoutRes: Int) : Fragment(l
         } else {
             onShow()
         }
+        val currentProgress = playerViewModel.progress
+        val currentDuration = playerViewModel.duration
+        if (currentProgress > -1 && currentDuration > -1) {
+            onUpdateSlider(currentProgress, currentDuration)
+        }
     }
 
     override fun onClick(view: View) {

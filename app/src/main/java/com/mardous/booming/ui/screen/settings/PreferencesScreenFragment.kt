@@ -58,6 +58,7 @@ import com.mardous.booming.extensions.utilities.toEnum
 import com.mardous.booming.ui.component.preferences.ProgressIndicatorPreference
 import com.mardous.booming.ui.component.preferences.SwitchWithButtonPreference
 import com.mardous.booming.ui.component.preferences.ThemePreference
+import com.mardous.booming.ui.component.preferences.dialog.AccentColorPreferenceDialog
 import com.mardous.booming.ui.component.preferences.dialog.ActionOnCoverPreferenceDialog
 import com.mardous.booming.ui.component.preferences.dialog.CategoriesPreferenceDialog
 import com.mardous.booming.ui.component.preferences.dialog.ClearQueueActionPreferenceDialog
@@ -73,6 +74,7 @@ import com.mardous.booming.ui.screen.scrobbling.ScrobblingServiceLoginFragment
 import com.mardous.booming.ui.screen.lyrics.LyricsViewModel
 import com.mardous.booming.ui.screen.update.UpdateSearchResult
 import com.mardous.booming.ui.screen.update.UpdateViewModel
+import com.mardous.booming.util.ACCENT_COLOR
 import com.mardous.booming.util.ADD_EXTRA_CONTROLS
 import com.mardous.booming.util.BACKUP_DATA
 import com.mardous.booming.util.BLACKLIST_ENABLED
@@ -229,6 +231,9 @@ open class PreferenceScreenFragment : PreferenceFragmentCompat(),
     fun preparePreferences() {
         findPreference<Preference>("about")?.summary =
             getString(R.string.about_summary, BuildConfig.VERSION_NAME)
+
+        findPreference<Preference>(ACCENT_COLOR)?.summary =
+            getString(Preferences.accentColor.titleRes)
 
         findPreference<ThemePreference>(GENERAL_THEME)?.apply {
             customCallback = object : ThemePreference.Callback {
@@ -399,6 +404,7 @@ open class PreferenceScreenFragment : PreferenceFragmentCompat(),
         } else {
             val dialogFragment: DialogFragment? = when (preference.key) {
                 LIBRARY_CATEGORIES -> CategoriesPreferenceDialog()
+                ACCENT_COLOR -> AccentColorPreferenceDialog()
                 NOW_PLAYING_SCREEN -> NowPlayingScreenPreferenceDialog()
                 NOW_PLAYING_EXTRA_INFO -> ExtraInfoPreferenceDialog.nowPlaying(requireContext())
                 WIDGET_THIRD_LINE_CONTENT -> ExtraInfoPreferenceDialog.appWidgets(requireContext())

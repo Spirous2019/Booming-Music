@@ -1035,5 +1035,17 @@
     <string name="reset_artist_images_confirm_message">Are you sure you want to reset all artist images? This will delete all custom and cached artist photos and re-fetch them automatically online.</string>
     <string name="reset_artist_images_success">All artist images reset to automatic</string>
     <string name="reset">Reset</string>
+
+    <!-- Accent Color -->
+    <string name="accent_color_title">Accent color</string>
+    <string name="accent_color_summary">Choose an accent color for the app interface</string>
+    <string name="accent_color_blue">Blue</string>
+    <string name="accent_color_grey">Grey</string>
+    <string name="accent_color_purple">Purple</string>
+    <string name="accent_color_green">Green</string>
+    <string name="accent_color_red">Red</string>
+    <string name="accent_color_orange">Orange</string>
+    <string name="accent_color_pink">Pink</string>
+    <string name="accent_color_teal">Teal</string>
 </resources>
 

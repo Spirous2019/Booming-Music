@@ -66,6 +66,10 @@ class GradientPlayerFragment : AbsPlayerFragment(R.layout.fragment_gradient_play
     private fun setupListeners() {
         binding.openQueueButton.setOnClickListener(this)
         binding.showLyricsButton.setOnClickListener(this)
+        binding.showLyricsButton.setOnLongClickListener {
+            onQuickActionEvent(NowPlayingAction.LyricsEditor)
+            true
+        }
         binding.soundSettingsButton.setOnClickListener(this)
     }
 

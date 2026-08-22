@@ -108,6 +108,10 @@ class DefaultPlayerFragment : AbsPlayerFragment(R.layout.fragment_default_player
         binding.customLyricsButton?.setOnClickListener {
             onQuickActionEvent(NowPlayingAction.Lyrics)
         }
+        binding.customLyricsButton?.setOnLongClickListener {
+            onQuickActionEvent(NowPlayingAction.LyricsEditor)
+            true
+        }
         binding.customQueueButton?.setOnClickListener {
             onQuickActionEvent(NowPlayingAction.OpenPlayQueue)
         }

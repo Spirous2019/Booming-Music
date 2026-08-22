@@ -23,6 +23,7 @@ import android.text.style.ForegroundColorSpan
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
+import androidx.core.view.isGone
 import androidx.core.view.isVisible
 import androidx.fragment.app.Fragment
 import coil3.request.Disposable
@@ -30,6 +31,7 @@ import com.mardous.booming.R
 import com.mardous.booming.coil.songImage
 import com.mardous.booming.core.model.player.ProgressState
 import com.mardous.booming.core.model.theme.NowPlayingButtonStyle
+import com.mardous.booming.data.model.Song
 import com.mardous.booming.databinding.FragmentMiniPlayerBinding
 import com.mardous.booming.extensions.isTablet
 import com.mardous.booming.extensions.launchAndRepeatWithViewLifecycle
@@ -75,13 +77,16 @@ class MiniPlayerFragment : Fragment(R.layout.fragment_mini_player),
         binding.progressBar.installWavyAnimatorCleanup()
         viewLifecycleOwner.launchAndRepeatWithViewLifecycle {
             playerViewModel.currentSongFlow.collect { currentSong ->
-                if (lastSongId != currentSong.id) {
-                    lastSongId = currentSong.id
-                    disposable = binding.image.songImage(currentSong)
-                    binding.songTitle.text = currentSong.title
-                    binding.songArtist.text = currentSong.displayArtistName()
-                    binding.songTitle.isSelected = true
-                    binding.songArtist.isSelected = true
+                if (currentSong != Song.emptySong && currentSong.id != 0L) {
+                    if (lastSongId != currentSong.id) {
+                        lastSongId = currentSong.id
+                        disposable?.dispose()
+                        disposable = binding.image.songImage(currentSong)
+                        binding.songTitle.text = currentSong.title
+                        binding.songArtist.text = currentSong.displayArtistName()
+                        binding.songTitle.isSelected = true
+                        binding.songArtist.isSelected = true
+                    }
                 }
             }
         }
@@ -187,6 +192,30 @@ class MiniPlayerFragment : Fragment(R.layout.fragment_mini_player),
             binding.actionPlayPause.setIconResource(buttonStyle.play)
         }
         setUpProgressStyle()
+    }
+
+    fun onSlide(progress: Float) {
+        val binding = _binding ?: return
+        val p = progress.coerceIn(0f, 1f)
+
+        // Reset image transformations
+        binding.image.scaleX = 1f
+        binding.image.scaleY = 1f
+        binding.image.translationX = 0f
+        binding.image.translationY = 0f
+        binding.image.alpha = 1f
+
+        // Smoothly fade out mini player controls and text in early drag
+        val textAlpha = (1f - (p / 0.25f)).coerceIn(0f, 1f)
+        binding.songTitle.alpha = textAlpha
+        binding.songArtist.alpha = textAlpha
+        binding.buttonContainer.alpha = textAlpha
+        binding.progressBar.alpha = textAlpha
+
+        // Entire mini player container alpha crossfades smoothly into full player
+        val overallAlpha = (1f - (p / 0.35f)).coerceIn(0f, 1f)
+        binding.root.alpha = overallAlpha
+        binding.root.isGone = overallAlpha <= 0f
     }
 
     private var flingPlayBackController = GestureDetector(context, object : GestureDetector.SimpleOnGestureListener() {

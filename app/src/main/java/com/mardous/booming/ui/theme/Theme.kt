@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.colorResource
 import com.mardous.booming.R
 import com.mardous.booming.core.model.player.PlayerColorScheme
+import com.mardous.booming.core.model.theme.AccentColor
 import com.mardous.booming.util.Preferences
 
 private val lightScheme = lightColorScheme(
@@ -90,16 +91,33 @@ private val darkScheme = darkColorScheme(
 fun BoomingMusicTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
     blackTheme: Boolean = Preferences.blackTheme,
+    accentColor: AccentColor = Preferences.accentColor,
     content: @Composable () -> Unit
 ) {
     var colorScheme = when {
-        darkTheme -> darkScheme
-        else -> lightScheme
+        darkTheme -> darkScheme.copy(
+            primary = accentColor.darkPrimary,
+            primaryContainer = accentColor.darkPrimaryContainer,
+            onPrimaryContainer = accentColor.darkOnPrimaryContainer,
+            secondary = accentColor.darkPrimary,
+            secondaryContainer = accentColor.darkPrimaryContainer,
+            onSecondaryContainer = accentColor.darkOnPrimaryContainer,
+            inversePrimary = accentColor.darkPrimary
+        )
+        else -> lightScheme.copy(
+            primary = accentColor.lightPrimary,
+            primaryContainer = accentColor.lightPrimaryContainer,
+            onPrimaryContainer = accentColor.lightOnPrimaryContainer,
+            secondary = accentColor.lightPrimary,
+            secondaryContainer = accentColor.lightPrimaryContainer,
+            onSecondaryContainer = accentColor.lightOnPrimaryContainer,
+            inversePrimary = accentColor.lightPrimary
+        )
     }
 
     if (darkTheme && blackTheme) {
         colorScheme = colorScheme.copy(
-            primary = Color(0xFF3A86F5),
+            primary = accentColor.darkPrimary,
             onPrimary = Color.White,
             background = Color.Black,
             onBackground = Color.White,
@@ -112,7 +130,7 @@ fun BoomingMusicTheme(
             surfaceContainerLowest = Color.Black,
             surfaceContainerHigh = Color(0xFF141416),
             surfaceContainerHighest = Color(0xFF1C1C1F),
-            secondaryContainer = Color(0xFF0F253C),
+            secondaryContainer = accentColor.darkPrimaryContainer,
             onSecondaryContainer = Color.White
         )
     }

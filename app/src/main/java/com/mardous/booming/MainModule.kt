@@ -51,9 +51,7 @@ import com.mardous.booming.data.local.repository.SpecialRepository
 import com.mardous.booming.data.model.Genre
 import com.mardous.booming.data.remote.deezer.DeezerService
 import com.mardous.booming.data.remote.duckduckgo.DuckDuckGoService
-import com.mardous.booming.data.remote.fanarttv.FanartTvService
 import com.mardous.booming.data.remote.itunes.iTunesService
-import com.mardous.booming.data.remote.wikimedia.WikimediaService
 import com.mardous.booming.data.remote.github.GitHubService
 import com.mardous.booming.data.remote.jsonHttpClient
 import com.mardous.booming.data.remote.lastfm.LastFmService
@@ -103,13 +101,7 @@ val networkModule = module {
         DuckDuckGoService(client = get())
     }
     single {
-        FanartTvService(client = get())
-    }
-    single {
         iTunesService(client = get())
-    }
-    single {
-        WikimediaService(client = get())
     }
     single {
         LastFmService(client = get())
@@ -284,9 +276,7 @@ private val dataModule = module {
             listenBrainzService = get(),
             deezerService = get(),
             duckDuckGoService = get(),
-            fanartTvService = get(),
-            iTunesService = get(),
-            wikimediaService = get()
+            iTunesService = get()
         )
     } bind NetworkRepository::class
 }

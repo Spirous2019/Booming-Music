@@ -172,6 +172,17 @@ abstract class AbsPlayerFragment(@LayoutRes layoutRes: Int) : Fragment(layoutRes
         }
     }
 
+    private var lastPaletteColor: PaletteColor? = null
+
+    override fun onResume() {
+        super.onResume()
+        val ctx = context ?: return
+        if (!playerViewModel.colorScheme.appThemeToken.isValid(ctx)) {
+            val color = lastPaletteColor ?: PaletteColor.errorColor(ctx)
+            playerViewModel.generatePlayerScheme(ctx, colorSchemeMode, color)
+        }
+    }
+
     @CallSuper
     protected open fun onCreateChildFragments() {
         coverFragment = whichFragment(R.id.playerAlbumCoverFragment)
@@ -370,6 +381,7 @@ abstract class AbsPlayerFragment(@LayoutRes layoutRes: Int) : Fragment(layoutRes
     }
 
     override fun onColorChanged(color: PaletteColor) {
+        lastPaletteColor = color
         playerViewModel.generatePlayerScheme(requireContext(), colorSchemeMode, color)
     }
 
@@ -657,6 +669,12 @@ abstract class AbsPlayerFragment(@LayoutRes layoutRes: Int) : Fragment(layoutRes
 
     fun setViewAction(view: View, action: NowPlayingAction) {
         view.setOnClickListener { onQuickActionEvent(action) }
+        if (action == NowPlayingAction.Lyrics) {
+            view.setOnLongClickListener {
+                onQuickActionEvent(NowPlayingAction.LyricsEditor)
+                true
+            }
+        }
     }
 
     fun getSongArtist(song: Song): CharSequence {

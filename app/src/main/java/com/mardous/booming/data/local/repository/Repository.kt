@@ -149,9 +149,7 @@ interface Repository {
     suspend fun deezerAlbum(artist: String, name: String): DeezerAlbum?
     suspend fun deezerAlbumsByArtist(artistName: String, limit: Int = 25): DeezerAlbum?
     suspend fun iTunesArtist(name: String): iTunesArtist?
-    suspend fun wikimediaArtistPortraits(name: String): List<Pair<String, String>>
     suspend fun duckDuckGoArtistPortraits(name: String): List<Pair<String, String>>
-    suspend fun fanartTvArtistPortraits(name: String): List<Pair<String, String>>
     suspend fun artistInfo(name: String, lang: String?, cache: String?): LastFmArtist?
     suspend fun albumInfo(artist: String, album: String, lang: String?): LastFmAlbum?
     suspend fun contributors(): List<Contribution>
@@ -471,14 +469,8 @@ class RealRepository(
     override suspend fun iTunesArtist(name: String) =
         networkRepository.iTunesArtist(name)
 
-    override suspend fun wikimediaArtistPortraits(name: String) =
-        networkRepository.wikimediaArtistPortraits(name)
-
     override suspend fun duckDuckGoArtistPortraits(name: String) =
         networkRepository.duckDuckGoArtistPortraits(name)
-
-    override suspend fun fanartTvArtistPortraits(name: String) =
-        networkRepository.fanartTvArtistPortraits(name)
 
     override suspend fun artistInfo(name: String, lang: String?, cache: String?) =
         networkRepository.artistInfo(name, lang, cache)

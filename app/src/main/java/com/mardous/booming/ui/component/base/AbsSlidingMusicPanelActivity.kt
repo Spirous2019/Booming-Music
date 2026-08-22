@@ -248,6 +248,9 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
     override fun onResume() {
         super.onResume()
         Preferences.registerOnSharedPreferenceChangeListener(this)
+        mediaControllerOwner.get()?.let { controller ->
+            playerViewModel.syncProgress(controller)
+        }
         if (bottomSheetBehavior.state == STATE_EXPANDED) {
             setMiniPlayerAlphaProgress(1f)
         }
@@ -486,14 +489,20 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
 
     private fun setMiniPlayerAlphaProgress(progress: Float) {
         if (progress < 0) return
-        val alpha = 1 - progress
-        miniPlayerFragment?.view?.alpha = 1 - (progress / 0.2F)
-        miniPlayerFragment?.view?.isGone = alpha == 0f
+        val p = progress.coerceIn(0f, 1f)
+
+        miniPlayerFragment?.onSlide(p)
+
+        val insetAlpha = (1f - (p / 0.25f)).coerceIn(0f, 1f)
+        binding.miniPlayerBottomInsetBackground?.alpha = insetAlpha
+        binding.miniPlayerBottomInsetBackground?.isGone = insetAlpha <= 0f
+
         if (!resources.isLandscape) {
-            binding.navigationViewContainer?.translationY = progress * 500
-            binding.navigationViewContainer?.alpha = alpha
+            binding.navigationViewContainer?.translationY = p * 500
+            binding.navigationViewContainer?.alpha = (1f - p).coerceIn(0f, 1f)
         }
-        binding.playerContainer.alpha = (progress - 0.2F) / 0.2F
+
+        binding.playerContainer.alpha = (p / 0.25f).coerceIn(0f, 1f)
     }
 
     private fun onPaletteColorChanged() {

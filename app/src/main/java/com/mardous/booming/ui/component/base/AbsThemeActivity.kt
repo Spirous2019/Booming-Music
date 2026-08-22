@@ -69,6 +69,7 @@ abstract class AbsThemeActivity : AppCompatActivity() {
     private fun updateTheme() {
         val appTheme = createAppTheme()
         setTheme(appTheme.themeRes)
+        setTheme(Preferences.accentColor.themeOverlayRes)
         
         if (appTheme.isBlackTheme) {
             setTheme(R.style.BlackThemeOverlay)

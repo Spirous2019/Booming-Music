@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.fragment.app.setFragmentResult
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
@@ -52,8 +53,6 @@ import org.koin.android.ext.android.inject
 import org.koin.androidx.viewmodel.ext.android.activityViewModel
 
 enum class ImageSource(val title: String) {
-    Wikipedia("Wikipedia Gallery"),
-    FanartTv("Fanart.tv Portraits"),
     DuckDuckGo("DuckDuckGo Web Search"),
     Deezer("Deezer Portraits"),
     ITunes("iTunes Portraits")
@@ -75,6 +74,7 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
             lifecycleScope.launch {
                 customImageManager.setNoImage(currentArtist, false)
                 customImageManager.setCustomImage(currentArtist, uri)
+                setFragmentResult(REQUEST_KEY, Bundle())
                 dismissAllowingStateLoss()
             }
         }
@@ -156,13 +156,7 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                 val seenHashes = mutableSetOf<String>()
 
                 withContext(Dispatchers.IO) {
-                    // Fetch Wikipedia, Fanart.tv, DuckDuckGo, Deezer, and iTunes concurrently
-                    val wikiDeferred = async {
-                        try { repository.wikimediaArtistPortraits(resolvedName) } catch (_: Exception) { emptyList() }
-                    }
-                    val fanartDeferred = async {
-                        try { repository.fanartTvArtistPortraits(resolvedName) } catch (_: Exception) { emptyList() }
-                    }
+                    // Fetch DuckDuckGo, Deezer, and iTunes concurrently in priority order
                     val duckDeferred = async {
                         try { repository.duckDuckGoArtistPortraits(resolvedName) } catch (_: Exception) { emptyList() }
                     }
@@ -173,34 +167,18 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                         try { repository.iTunesArtist(resolvedName) } catch (_: Exception) { null }
                     }
 
-                    val wikiResults = wikiDeferred.await()
-                    val fanartResults = fanartDeferred.await()
                     val duckResults = duckDeferred.await()
                     val deezerResult = deezerDeferred.await()
                     val itunesResult = itunesDeferred.await()
 
-                    // 1. Wikipedia Gallery Photos
-                    for ((title, url) in wikiResults) {
-                        if (url.isNotBlank() && url.startsWith("http") && seenHashes.add(url)) {
-                            allCandidates.add(CandidateImage(title, url, ImageSource.Wikipedia))
-                        }
-                    }
-
-                    // 2. Fanart.tv High-Res Portraits
-                    for ((label, url) in fanartResults) {
-                        if (url.isNotBlank() && url.startsWith("http") && seenHashes.add(url)) {
-                            allCandidates.add(CandidateImage(label, url, ImageSource.FanartTv))
-                        }
-                    }
-
-                    // 3. DuckDuckGo Web Portrait Photos
+                    // 1. DuckDuckGo Web Portrait Photos (Priority 1)
                     for ((label, url) in duckResults) {
                         if (url.isNotBlank() && url.startsWith("http") && seenHashes.add(url)) {
                             allCandidates.add(CandidateImage(label, url, ImageSource.DuckDuckGo))
                         }
                     }
 
-                    // 4. Deezer Artist Avatar
+                    // 2. Deezer Artist Avatar (Priority 2)
                     if (deezerResult != null) {
                         val filtered = deezerResult.getFilteredCandidates(resolvedName)
                         for ((name, url) in filtered) {
@@ -213,7 +191,7 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                         }
                     }
 
-                    // 5. iTunes Artist Portraits
+                    // 3. iTunes Artist Portraits (Priority 3)
                     if (itunesResult != null) {
                         val filtered = itunesResult.getFilteredCandidates(resolvedName)
                         for ((name, url) in filtered) {
@@ -290,6 +268,7 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                     onClick = {
                         scope.launch {
                             customImageManager.setNoImage(currentArtist, true)
+                            setFragmentResult(REQUEST_KEY, Bundle())
                             dismissAllowingStateLoss()
                         }
                     },
@@ -335,8 +314,6 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                     )
                 }
             } else {
-                val wikiCandidates = candidates.filter { it.source == ImageSource.Wikipedia }
-                val fanartCandidates = candidates.filter { it.source == ImageSource.FanartTv }
                 val duckCandidates = candidates.filter { it.source == ImageSource.DuckDuckGo }
                 val deezerCandidates = candidates.filter { it.source == ImageSource.Deezer }
                 val itunesCandidates = candidates.filter { it.source == ImageSource.ITunes }
@@ -349,27 +326,7 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    // 1. Wikipedia Section
-                    if (wikiCandidates.isNotEmpty()) {
-                        item(span = { GridItemSpan(3) }) {
-                            CategoryHeader(ImageSource.Wikipedia.title, wikiCandidates.size)
-                        }
-                        items(wikiCandidates) { candidate ->
-                            CandidateImageCard(candidate, currentArtist, scope)
-                        }
-                    }
-
-                    // 2. Fanart.tv Section
-                    if (fanartCandidates.isNotEmpty()) {
-                        item(span = { GridItemSpan(3) }) {
-                            CategoryHeader(ImageSource.FanartTv.title, fanartCandidates.size)
-                        }
-                        items(fanartCandidates) { candidate ->
-                            CandidateImageCard(candidate, currentArtist, scope)
-                        }
-                    }
-
-                    // 3. DuckDuckGo Section
+                    // 1. DuckDuckGo Section (Priority 1)
                     if (duckCandidates.isNotEmpty()) {
                         item(span = { GridItemSpan(3) }) {
                             CategoryHeader(ImageSource.DuckDuckGo.title, duckCandidates.size)
@@ -379,7 +336,7 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                         }
                     }
 
-                    // 4. Deezer Section
+                    // 2. Deezer Section (Priority 2)
                     if (deezerCandidates.isNotEmpty()) {
                         item(span = { GridItemSpan(3) }) {
                             CategoryHeader(ImageSource.Deezer.title, deezerCandidates.size)
@@ -389,7 +346,7 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                         }
                     }
 
-                    // 5. iTunes Section
+                    // 3. iTunes Section (Priority 3)
                     if (itunesCandidates.isNotEmpty()) {
                         item(span = { GridItemSpan(3) }) {
                             CategoryHeader(ImageSource.ITunes.title, itunesCandidates.size)
@@ -444,6 +401,7 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
                     scope.launch {
                         val success = downloadAndSetImage(currentArtist, candidate.url)
                         if (success) {
+                            setFragmentResult(REQUEST_KEY, Bundle())
                             dismissAllowingStateLoss()
                         }
                     }
@@ -497,6 +455,7 @@ class ArtistImagePickerDialogFragment : BottomSheetDialogFragment() {
 
     companion object {
         const val TAG = "ArtistImagePickerDialogFragment"
+        const val REQUEST_KEY = "artist_image_updated"
 
         fun newInstance(artist: Artist): ArtistImagePickerDialogFragment {
             return ArtistImagePickerDialogFragment().apply {

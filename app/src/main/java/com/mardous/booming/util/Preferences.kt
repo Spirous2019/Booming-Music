@@ -35,6 +35,7 @@ import com.mardous.booming.core.model.player.MetadataField
 import com.mardous.booming.core.model.player.PlayerColorSchemeMode
 import com.mardous.booming.core.model.player.PlayerTransition
 import com.mardous.booming.core.model.shuffle.GroupShuffleMode
+import com.mardous.booming.core.model.theme.AccentColor
 import com.mardous.booming.core.model.theme.AppTheme
 import com.mardous.booming.core.model.theme.NowPlayingScreen
 import com.mardous.booming.extensions.files.getCanonicalPathSafe
@@ -77,6 +78,10 @@ object Preferences : KoinComponent {
     var generalTheme: String
         get() = getGeneralTheme(blackTheme)
         set(value) = preferences.edit { putString(GENERAL_THEME, value) }
+
+    var accentColor: AccentColor
+        get() = AccentColor.fromId(preferences.getString(ACCENT_COLOR, AccentColor.DEFAULT.id))
+        set(value) = preferences.edit { putString(ACCENT_COLOR, value.id) }
 
     fun getThemeMode(themeName: String) = when (themeName) {
         GeneralTheme.LIGHT -> AppTheme.Mode.Light
@@ -252,6 +257,9 @@ object Preferences : KoinComponent {
 
     val coverRightDoubleTapAction: NowPlayingAction
         get() = preferences.enumValue(COVER_RIGHT_DOUBLE_TAP_ACTION, NowPlayingAction.SeekForward)
+
+    val seekInterval: Long
+        get() = preferences.getInt(SEEK_INTERVAL, 10) * 1000L
 
     val coverLongPressAction: NowPlayingAction
         get() = preferences.enumValue(COVER_LONG_PRESS_ACTION, NowPlayingAction.SaveAlbumCover)
@@ -557,6 +565,7 @@ const val MATERIAL_YOU = "material_you"
 const val USE_CUSTOM_FONT = "use_custom_font"
 const val APPBAR_MODE = "appbar_mode"
 const val GENERAL_THEME = "general_theme"
+const val ACCENT_COLOR = "accent_color"
 const val LIBRARY_CATEGORIES = "library_categories"
 const val REMEMBER_LAST_PAGE = "remember_last_page"
 const val TAB_TITLES_MODE = "tab_titles_mode"

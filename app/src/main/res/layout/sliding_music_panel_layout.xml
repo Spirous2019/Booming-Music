@@ -28,17 +28,17 @@
         app:gestureInsetBottomIgnored="true"
         app:layout_behavior="com.google.android.material.bottomsheet.BottomSheetBehavior">
 
+        <androidx.fragment.app.FragmentContainerView
+            android:id="@+id/player_container"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"/>
+
         <View
             android:id="@+id/mini_player_bottom_inset_background"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_marginTop="@dimen/mini_player_height"
             android:background="?attr/colorSurfaceContainer" />
-
-        <androidx.fragment.app.FragmentContainerView
-            android:id="@+id/player_container"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"/>
 
         <fragment
             android:id="@+id/mini_player_container"

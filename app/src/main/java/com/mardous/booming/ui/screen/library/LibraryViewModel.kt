@@ -116,14 +116,20 @@ class LibraryViewModel(
     }
 
     fun setLibraryMargins(fabBottomMargin: LibraryMargin, bottomSheetMargin: LibraryMargin) {
+        val currentFab = fabMargin.value
+        val currentMiniPlayer = miniPlayerMargin.value
+        if (currentFab == fabBottomMargin && currentMiniPlayer == bottomSheetMargin) {
+            return
+        }
+
         val fabAnimator = createValueAnimator(
-            oldValue = fabMargin.value!!.margin,
+            oldValue = currentFab?.margin ?: 0,
             newValue = fabBottomMargin.margin
         ) {
             fabMargin.postValue(fabBottomMargin.copy(margin = it))
         }
         val miniPlayerAnimator = createValueAnimator(
-            oldValue = miniPlayerMargin.value!!.margin,
+            oldValue = currentMiniPlayer?.margin ?: 0,
             newValue = bottomSheetMargin.margin
         ) {
             miniPlayerMargin.postValue(bottomSheetMargin.copy(margin = it))
