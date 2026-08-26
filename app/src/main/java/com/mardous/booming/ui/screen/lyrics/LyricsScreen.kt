@@ -48,7 +48,9 @@ import androidx.compose.ui.platform.rememberNestedScrollInteropConnection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.unit.dp
+import com.mardous.booming.util.BidiUtil
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.SingletonImageLoader
@@ -332,6 +334,13 @@ private fun LyricsSurface(
                 }
 
                 !result.plainLyrics.content.isNullOrBlank() -> {
+                    val plainContent = result.plainLyrics.content
+                    val isPlainRtl = remember(plainContent) { BidiUtil.isRtl(plainContent) }
+                    val plainDirection = remember(isPlainRtl) {
+                        if (isPlainRtl) TextDirection.ContentOrRtl else TextDirection.ContentOrLtr
+                    }
+                    val plainAlign = textAlign ?: if (isPlainRtl) TextAlign.End else TextAlign.Start
+
                     Column(
                         modifier = Modifier
                             .fillMaxSize()
@@ -341,10 +350,10 @@ private fun LyricsSurface(
                             .padding(settings.contentPadding)
                     ) {
                         Text(
-                            text = result.plainLyrics.content,
+                            text = plainContent,
                             color = contentColor,
-                            textAlign = textAlign,
-                            style = settings.unsyncedStyle,
+                            textAlign = plainAlign,
+                            style = settings.unsyncedStyle.copy(textDirection = plainDirection),
                             modifier = Modifier.fillMaxSize()
                         )
                     }

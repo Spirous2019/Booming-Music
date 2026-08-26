@@ -128,6 +128,9 @@ class LyricsEditorFragment : AbsMainActivityFragment(R.layout.fragment_lyrics_ed
         binding.save.isEnabled = false
         binding.progressIndicator.show()
 
+        binding.plainInput.textDirection = View.TEXT_DIRECTION_FIRST_STRONG
+        binding.syncedInput.textDirection = View.TEXT_DIRECTION_FIRST_STRONG
+
         lyricsViewModel.getAllLyrics(song, fromEditor = true).observe(viewLifecycleOwner) { result ->
             binding.progressIndicator.hide()
             binding.embeddedButton.isEnabled = true

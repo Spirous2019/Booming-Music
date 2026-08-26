@@ -62,6 +62,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextDirection
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -73,6 +74,7 @@ import com.mardous.booming.data.model.lyrics.Lyrics
 import com.mardous.booming.data.model.lyrics.LyricsActor
 import com.mardous.booming.extensions.hasS
 import com.mardous.booming.ui.component.compose.decoration.FadingEdges
+import com.mardous.booming.util.BidiUtil
 import com.mardous.booming.ui.component.compose.decoration.fadingEdges
 import kotlin.math.PI
 import kotlin.math.abs
@@ -219,26 +221,29 @@ private fun LyricsLineView(
         label = "current-line-scale-animation"
     )
 
+    val lineText = remember(line) { line.content.getText(background = false) }
+    val isLineRtl = remember(lineText) { BidiUtil.isRtl(lineText) }
+
     val textAlign = if (isCenterHorizontally) {
         TextAlign.Center
     } else {
         when (line.actor) {
             LyricsActor.Voice2,
-            LyricsActor.Voice2Background -> TextAlign.End
+            LyricsActor.Voice2Background -> if (isLineRtl) TextAlign.Start else TextAlign.End
 
             LyricsActor.Group,
             LyricsActor.GroupBackground,
             LyricsActor.Duet,
             LyricsActor.DuetBackground -> TextAlign.Center
 
-            else -> TextAlign.Start
+            else -> if (isLineRtl) TextAlign.End else TextAlign.Start
         }
     }
 
     LyricsLineBox(
         style = textStyle,
         align = textAlign,
-        rtl = rtl,
+        rtl = isLineRtl,
         onClick = onClick
     ) { transformOrigin ->
         if (line.isEmpty) {
@@ -473,9 +478,10 @@ private fun LyricsTextView(
         Shadow.None
     }
 
-    val textStyle by remember(color, selectedLine, progressiveColoring, animatedOrigin) {
+    val lineDirection = remember(content) { BidiUtil.getTextDirection(content) }
+    val textStyle by remember(color, selectedLine, progressiveColoring, animatedOrigin, lineDirection) {
         derivedStateOf {
-            if (progressiveColoring) {
+            val base = if (progressiveColoring) {
                 style.copy(
                     brush = Brush.verticalGradient(
                         colors = listOf(color, color.copy(alpha = color.alpha / 2)),
@@ -486,6 +492,7 @@ private fun LyricsTextView(
             } else {
                 style.copy(color = color)
             }
+            base.copy(textDirection = lineDirection)
         }
     }
 
@@ -559,9 +566,15 @@ private fun SyllableText(
             }
         }
     }
+    val lineText = remember(words) { words.joinToString("") { it.content } }
+    val lineDirection = remember(lineText) { BidiUtil.getTextDirection(lineText) }
+    val syllableStyle = remember(style, lineDirection) {
+        style.copy(textDirection = lineDirection)
+    }
+
     Text(
         text = styledText,
-        style = style,
+        style = syllableStyle,
         textAlign = align,
         modifier = modifier
     )

@@ -65,6 +65,12 @@ class MediaControllerOwner(
     }
 
     override fun onStart(owner: LifecycleOwner) {
+        val current = controller
+        if (current != null && current.isConnected && state == State.Connected) {
+            _isConnected.value = Event(true)
+            return
+        }
+
         val movedToConnectingState = currentState.compareAndSet(State.Idle, State.Connecting) ||
                 currentState.compareAndSet(State.Disconnected, State.Connecting)
 
@@ -94,6 +100,11 @@ class MediaControllerOwner(
     }
 
     override fun onStop(owner: LifecycleOwner) {
+        // Keep MediaController connection alive while app is backgrounded/minimized
+        // to prevent connection teardown, latency, and UI refreshing glitches on resume.
+    }
+
+    override fun onDestroy(owner: LifecycleOwner) {
         val oldState = currentState.exchange(State.Disconnected)
         if (oldState < State.Disconnected) {
             controller?.release()
@@ -101,9 +112,6 @@ class MediaControllerOwner(
             controllerFuture?.cancel(true)
             controllerFuture = null
         }
-    }
-
-    override fun onDestroy(owner: LifecycleOwner) {
         listener = null
     }
 

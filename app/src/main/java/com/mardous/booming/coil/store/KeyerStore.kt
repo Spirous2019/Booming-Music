@@ -29,9 +29,10 @@ class ArtistImageKeyer(
     private val customArtistImageManager: CustomArtistImageManager
 ) : Keyer<ArtistImage> {
     override fun key(data: ArtistImage, options: Options): String? {
-        val hasCustomImage = customArtistImageManager.hasCustomImage(data)
+        val cleanName = data.name.trim().lowercase()
         val signature = customArtistImageManager.getSignature(data)
-        return "artist::id=${data.id}|name=${data.name}|coverUri=${data.coverUri}|hasCustomImage=$hasCustomImage|signature=$signature"
+        val hasCustomImage = customArtistImageManager.hasCustomImage(data)
+        return "artist::name=$cleanName|hasCustomImage=$hasCustomImage|signature=$signature"
     }
 }
 

@@ -36,38 +36,72 @@ class CustomArtistImageManager(private val context: Context) {
         context.getSharedPreferences("artist_signatures", Context.MODE_PRIVATE)
     }
 
-    // shared prefs saves us many IO operations
-    fun hasCustomImage(image: ArtistImage) =
-        imagesPreferences.getBoolean(image.getFileName(), false)
+    private fun getCanonicalName(name: String): String =
+        name.trim().lowercase(Locale.US)
 
-    fun isNoImage(image: ArtistImage) =
-        imagesPreferences.getBoolean("no_image_" + image.getFileName(), false)
+    private fun getCanonicalFileName(name: String): String =
+        "${name.trim().lowercase(Locale.US).sanitize()}.jpeg"
 
-    fun setNoImage(artist: Artist, noImage: Boolean) {
+    fun hasCustomImage(name: String): Boolean {
+        val canonical = getCanonicalName(name)
+        if (imagesPreferences.getBoolean(canonical, false)) return true
+        val dir = FileUtil.customArtistImagesDirectory() ?: return false
+        val existing = findExistingFile(name, dir)
+        if (existing != null && existing.isFile && existing.length() > 0) {
+            imagesPreferences.edit(true) { putBoolean(canonical, true) }
+            return true
+        }
+        return false
+    }
+
+    fun hasCustomImage(image: ArtistImage): Boolean = hasCustomImage(image.name)
+    fun hasCustomImage(artist: Artist): Boolean = hasCustomImage(artist.name)
+
+    fun isNoImage(name: String): Boolean =
+        imagesPreferences.getBoolean("no_image_" + getCanonicalName(name), false)
+
+    fun isNoImage(image: ArtistImage): Boolean = isNoImage(image.name)
+    fun isNoImage(artist: Artist): Boolean = isNoImage(artist.name)
+
+    fun setNoImage(name: String, noImage: Boolean) {
+        val canonical = getCanonicalName(name)
         imagesPreferences.edit(true) {
-            putBoolean("no_image_" + artist.getFileName(), noImage)
+            putBoolean("no_image_$canonical", noImage)
         }
         if (noImage) {
-            getCustomImageFile(artist)?.deleteQuietly()
+            val dir = FileUtil.customArtistImagesDirectory()
+            if (dir != null) {
+                deleteArtistFiles(name, dir)
+            }
         }
         signaturesPreferences.edit(true) {
-            putLong(artist.name, System.currentTimeMillis())
+            putLong(canonical, System.currentTimeMillis())
+            putLong(name, System.currentTimeMillis())
         }
+        clearCoilMemoryCache()
         contentResolver.notifyChange(Artists.EXTERNAL_CONTENT_URI, null)
     }
 
-    fun getSignature(image: ArtistImage) =
-        signaturesPreferences.getLong(image.name, 0).toString()
+    fun setNoImage(artist: Artist, noImage: Boolean) {
+        setNoImage(artist.name, noImage)
+    }
 
-    fun getCustomImageFile(image: ArtistImage) =
-        FileUtil.customArtistImagesDirectory()?.let { dir ->
-            File(dir, image.getFileName())
-        }
+    fun getSignature(name: String): String {
+        val canonical = getCanonicalName(name)
+        val sig = signaturesPreferences.getLong(canonical, signaturesPreferences.getLong(name, 0))
+        return sig.toString()
+    }
 
-    fun getCustomImageFile(artist: Artist) =
-        FileUtil.customArtistImagesDirectory()?.let { dir ->
-            File(dir, artist.getFileName())
-        }
+    fun getSignature(image: ArtistImage): String = getSignature(image.name)
+    fun getSignature(artist: Artist): String = getSignature(artist.name)
+
+    fun getCustomImageFile(name: String): File? {
+        val dir = FileUtil.customArtistImagesDirectory() ?: return null
+        return findExistingFile(name, dir) ?: File(dir, getCanonicalFileName(name))
+    }
+
+    fun getCustomImageFile(image: ArtistImage): File? = getCustomImageFile(image.name)
+    fun getCustomImageFile(artist: Artist): File? = getCustomImageFile(artist.name)
 
     suspend fun setCustomImage(artist: Artist, uri: Uri): Boolean {
         return try {
@@ -80,37 +114,43 @@ class CustomArtistImageManager(private val context: Context) {
                         .target(
                             onSuccess = { drawable ->
                                 coroutineScope.launch(Dispatchers.IO) {
-                                    val imageFile = getCustomImageFile(artist)
-                                    if (imageFile == null) {
+                                    val dir = FileUtil.customArtistImagesDirectory()
+                                    if (dir == null) {
                                         continuation.resume(false)
-                                    } else {
-                                        try {
-                                            val imageCreated = imageFile.outputStream()
-                                                .buffered()
-                                                .use { stream ->
-                                                    drawable.toBitmap().toJPG(100, stream)
-                                                }
-
-                                            artist.updateHasImage(imageCreated)
-                                            contentResolver.notifyChange(
-                                                Artists.EXTERNAL_CONTENT_URI,
-                                                null
-                                            )
-
-                                            if (!imageCreated) {
-                                                imageFile.deleteQuietly()
+                                        return@launch
+                                    }
+                                    deleteArtistFiles(artist.name, dir)
+                                    val imageFile = File(dir, getCanonicalFileName(artist.name))
+                                    try {
+                                        val imageCreated = imageFile.outputStream()
+                                            .buffered()
+                                            .use { stream ->
+                                                drawable.toBitmap().toJPG(100, stream)
                                             }
 
-                                            continuation.resume(imageCreated)
-                                        } catch (t: Throwable) {
+                                        updateHasImage(artist.name, imageCreated)
+                                        clearCoilMemoryCache()
+                                        contentResolver.notifyChange(
+                                            Artists.EXTERNAL_CONTENT_URI,
+                                            null
+                                        )
+
+                                        if (!imageCreated) {
                                             imageFile.deleteQuietly()
-                                            continuation.resumeWithException(t)
                                         }
+
+                                        continuation.resume(imageCreated)
+                                    } catch (t: Throwable) {
+                                        imageFile.deleteQuietly()
+                                        continuation.resumeWithException(t)
                                     }
                                     continuation.invokeOnCancellation {
-                                        imageFile?.deleteQuietly()
+                                        imageFile.deleteQuietly()
                                     }
                                 }
+                            },
+                            onError = {
+                                continuation.resume(false)
                             }
                         )
                         .build()
@@ -122,9 +162,11 @@ class CustomArtistImageManager(private val context: Context) {
         }
     }
 
-    suspend fun setCustomImageFromUrl(image: ArtistImage, imageUrl: String): Boolean = withContext(Dispatchers.IO) {
+    suspend fun setCustomImageFromUrl(name: String, imageUrl: String): Boolean = withContext(Dispatchers.IO) {
         try {
-            val imageFile = getCustomImageFile(image) ?: return@withContext false
+            val dir = FileUtil.customArtistImagesDirectory() ?: return@withContext false
+            deleteArtistFiles(name, dir)
+            val imageFile = File(dir, getCanonicalFileName(name))
             val connection = java.net.URL(imageUrl).openConnection()
             connection.connectTimeout = 10000
             connection.readTimeout = 10000
@@ -133,7 +175,8 @@ class CustomArtistImageManager(private val context: Context) {
                     input.copyTo(output)
                 }
             }
-            updateHasImage(image.getFileName(), image.name, true)
+            updateHasImage(name, true)
+            clearCoilMemoryCache()
             contentResolver.notifyChange(Artists.EXTERNAL_CONTENT_URI, null)
             true
         } catch (e: Exception) {
@@ -142,35 +185,21 @@ class CustomArtistImageManager(private val context: Context) {
         }
     }
 
-    suspend fun setCustomImageFromUrl(artist: Artist, imageUrl: String): Boolean = withContext(Dispatchers.IO) {
-        try {
-            val imageFile = getCustomImageFile(artist) ?: return@withContext false
-            val connection = java.net.URL(imageUrl).openConnection()
-            connection.connectTimeout = 10000
-            connection.readTimeout = 10000
-            connection.getInputStream().use { input ->
-                imageFile.outputStream().use { output ->
-                    input.copyTo(output)
-                }
-            }
-            updateHasImage(artist.getFileName(), artist.name, true)
-            contentResolver.notifyChange(Artists.EXTERNAL_CONTENT_URI, null)
-            true
-        } catch (e: Exception) {
-            Log.e("CustomArtistImageManager", "Failed to save artist image from URL: $imageUrl", e)
-            false
-        }
-    }
+    suspend fun setCustomImageFromUrl(image: ArtistImage, imageUrl: String): Boolean =
+        setCustomImageFromUrl(image.name, imageUrl)
+
+    suspend fun setCustomImageFromUrl(artist: Artist, imageUrl: String): Boolean =
+        setCustomImageFromUrl(artist.name, imageUrl)
 
     suspend fun removeCustomImage(artist: Artist): Boolean = withContext(Dispatchers.IO) {
-        artist.updateHasImage(false)
-
-        // trigger media store changed to force artist image reload
+        updateHasImage(artist.name, false)
+        val dir = FileUtil.customArtistImagesDirectory()
+        if (dir != null) {
+            deleteArtistFiles(artist.name, dir)
+        }
+        clearCoilMemoryCache()
         contentResolver.notifyChange(Artists.EXTERNAL_CONTENT_URI, null)
-
-        getCustomImageFile(artist)?.let { file ->
-            file.exists() && file.deleteQuietly()
-        } ?: false
+        true
     }
 
     suspend fun resetAllArtistImages(): Boolean = withContext(Dispatchers.IO) {
@@ -182,12 +211,7 @@ class CustomArtistImageManager(private val context: Context) {
                 file.deleteQuietly()
             }
 
-            try {
-                val loader = SingletonImageLoader.get(context)
-                loader.memoryCache?.clear()
-                loader.diskCache?.clear()
-            } catch (_: Exception) {}
-
+            clearCoilMemoryCache(clearDisk = true)
             contentResolver.notifyChange(Artists.EXTERNAL_CONTENT_URI, null)
             true
         } catch (e: Exception) {
@@ -196,25 +220,71 @@ class CustomArtistImageManager(private val context: Context) {
         }
     }
 
-    private fun Artist.updateHasImage(hasImage: Boolean) {
-        updateHasImage(getFileName(), name, hasImage)
-    }
-
-    private fun updateHasImage(fileName: String, name: String, hasImage: Boolean) {
+    private fun updateHasImage(name: String, hasImage: Boolean) {
+        val canonical = getCanonicalName(name)
         imagesPreferences.edit(true) {
-            putBoolean(fileName, hasImage)
+            putBoolean(canonical, hasImage)
+            if (hasImage) {
+                remove("no_image_$canonical")
+            }
         }
         signaturesPreferences.edit(true) {
+            putLong(canonical, System.currentTimeMillis())
             putLong(name, System.currentTimeMillis())
         }
     }
 
-    private fun Artist.getFileName(): String {
-        return String.format(Locale.US, "#%d#%s.jpeg", id, name).sanitize()
+    private fun clearCoilMemoryCache(clearDisk: Boolean = false) {
+        try {
+            val loader = SingletonImageLoader.get(context)
+            loader.memoryCache?.clear()
+            if (clearDisk) {
+                loader.diskCache?.clear()
+            }
+        } catch (_: Exception) {}
     }
 
-    private fun ArtistImage.getFileName(): String {
-        return String.format(Locale.US, "#%d#%s.jpeg", id, name).sanitize()
+    private fun findExistingFile(name: String, dir: File): File? {
+        val canonicalName = getCanonicalFileName(name)
+        val canonicalFile = File(dir, canonicalName)
+        if (canonicalFile.isFile && canonicalFile.length() > 0) {
+            return canonicalFile
+        }
+
+        val sanitizedRawName = name.sanitize()
+        val allFiles = dir.listFiles() ?: return null
+        val matched = allFiles.firstOrNull { file ->
+            val fileName = file.name
+            fileName.equals(canonicalName, ignoreCase = true) ||
+            fileName.equals("$sanitizedRawName.jpeg", ignoreCase = true) ||
+            (fileName.startsWith("#") && fileName.endsWith("#$sanitizedRawName.jpeg", ignoreCase = true))
+        }
+
+        if (matched != null && matched.isFile && matched.length() > 0) {
+            try {
+                if (matched.absolutePath != canonicalFile.absolutePath) {
+                    matched.copyTo(canonicalFile, overwrite = true)
+                    matched.deleteQuietly()
+                }
+            } catch (_: Exception) {}
+            return canonicalFile
+        }
+
+        return null
+    }
+
+    private fun deleteArtistFiles(name: String, dir: File) {
+        val canonicalName = getCanonicalFileName(name)
+        val sanitizedRawName = name.sanitize()
+        val allFiles = dir.listFiles() ?: return
+        for (file in allFiles) {
+            val fileName = file.name
+            if (fileName.equals(canonicalName, ignoreCase = true) ||
+                fileName.equals("$sanitizedRawName.jpeg", ignoreCase = true) ||
+                (fileName.startsWith("#") && fileName.endsWith("#$sanitizedRawName.jpeg", ignoreCase = true))) {
+                file.deleteQuietly()
+            }
+        }
     }
 
     private fun File.deleteQuietly() = try {

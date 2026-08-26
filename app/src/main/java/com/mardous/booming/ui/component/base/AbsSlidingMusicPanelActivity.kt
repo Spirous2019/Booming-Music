@@ -367,13 +367,16 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
                 )
             )
         } else {
+            if (panelState == STATE_HIDDEN) {
+                panelState = STATE_COLLAPSED
+            }
             if (playerViewModel.queue.isNotEmpty()) {
                 slidingPanel.elevation = 0f
                 binding.navigationViewContainer?.elevation = 5f
                 if (isBottomNavVisible) {
                     if (animate && kotlin.math.abs(bottomSheetBehavior.peekHeight - heightOfBarWithTabs) > 4) {
                         bottomSheetBehavior.peekHeightAnimate(heightOfBarWithTabs)
-                    } else {
+                    } else if (bottomSheetBehavior.peekHeight != heightOfBarWithTabs) {
                         bottomSheetBehavior.peekHeight = heightOfBarWithTabs
                     }
                     libraryViewModel.setLibraryMargins(
@@ -392,7 +395,7 @@ abstract class AbsSlidingMusicPanelActivity : AbsBaseActivity(),
                         bottomSheetBehavior.peekHeightAnimate(heightOfBar).doOnEnd {
                             slidingPanel.bringToFront()
                         }
-                    } else {
+                    } else if (bottomSheetBehavior.peekHeight != heightOfBar) {
                         bottomSheetBehavior.peekHeight = heightOfBar
                         slidingPanel.bringToFront()
                     }

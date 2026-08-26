@@ -168,16 +168,16 @@ class PlayerViewModel(
             { queue, position -> Pair(queue, position) }
                 .distinctUntilChanged()
                 .onEach { (queue, position) ->
-                    val newCurrent = queue.getOrNull(position.current)
+                    val newCurrent = if (position.current >= 0) queue.getOrNull(position.current) else null
                     if (newCurrent != null && newCurrent != Song.emptySong) {
                         _currentSongFlow.value = newCurrent
-                    } else if (queue.isEmpty() && mediaController.currentTimeline.isEmpty) {
+                    } else if (queue.isEmpty() || position.current < 0) {
                         _currentSongFlow.value = Song.emptySong
                     }
-                    val newNext = queue.getOrNull(position.next)
+                    val newNext = if (position.next >= 0) queue.getOrNull(position.next) else null
                     if (newNext != null && newNext != Song.emptySong) {
                         _nextSongFlow.value = newNext
-                    } else if (queue.isEmpty() && mediaController.currentTimeline.isEmpty) {
+                    } else if (queue.isEmpty() || position.next < 0) {
                         _nextSongFlow.value = Song.emptySong
                     }
                 }
@@ -234,9 +234,12 @@ class PlayerViewModel(
         timeline: Timeline = player.currentTimeline
     ) = viewModelScope.launch {
         queueMutex.withLock {
-            // If the timeline is empty, reset the queue and exit early.
-            if (timeline.isEmpty) {
+            // If the timeline is empty or media items are 0, reset the queue and position
+            if (timeline.isEmpty || player.mediaItemCount == 0) {
                 _queueFlow.value = emptyList()
+                _currentSongFlow.value = Song.emptySong
+                _nextSongFlow.value = Song.emptySong
+                _positionFlow.value = QueuePosition.Undefined
                 return@launch
             }
 
@@ -247,7 +250,7 @@ class PlayerViewModel(
             val queueItems = player.getQueueItems(shuffle)
             val indicesInTimeline = queueItems.map { it.indexInTimeline }.toIntArray()
             val queuePosition = QueuePosition(
-                current = indicesInTimeline.indexOf(playerIndex),
+                current = if (playerIndex != C.INDEX_UNSET) indicesInTimeline.indexOf(playerIndex) else -1,
                 indicesInTimeline = indicesInTimeline
             )
 
@@ -287,7 +290,7 @@ class PlayerViewModel(
             // Update the queue with the valid songs and current live position (captured after IO to avoid stale race conditions)
             val livePlayerIndex = player.currentMediaItemIndex
             val liveQueuePosition = QueuePosition(
-                current = indicesInTimeline.indexOf(livePlayerIndex),
+                current = if (livePlayerIndex != C.INDEX_UNSET) indicesInTimeline.indexOf(livePlayerIndex) else -1,
                 indicesInTimeline = indicesInTimeline
             )
             _queueFlow.value = songs
@@ -657,6 +660,13 @@ class PlayerViewModel(
         when (behavior) {
             QueueClearingBehavior.RemoveAllSongs -> {
                 mediaController?.clearMediaItems()
+                _queueFlow.value = emptyList()
+                _currentSongFlow.value = Song.emptySong
+                _nextSongFlow.value = Song.emptySong
+                _positionFlow.value = QueuePosition.Undefined
+                _progressFlow.value = 0L
+                _durationFlow.value = 0L
+                _isPlayingFlow.value = false
             }
 
             QueueClearingBehavior.RemoveAllSongsExceptCurrentlyPlaying -> {
